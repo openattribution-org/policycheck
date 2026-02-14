@@ -714,6 +714,29 @@ Typical performance:
 - Single URL analysis: ~50-200ms (network dependent)
 - 100 URLs analyzed concurrently: ~2-5 seconds
 
+## Limitations and Considerations
+
+### Datacenter IP Blocking
+
+**The Paradox:** robots.txt exists for bots to check before crawling, but some sites block datacenter IPs, preventing policy checkers from accessing robots.txt.
+
+**Why this happens:**
+- Sites like Medium block cloud provider IP ranges to prevent scraping
+- PolicyCheck runs from cloud infrastructure (Fly.io)
+- Appears as "generic scraper" rather than "compliance checker"
+
+**How legitimate crawlers solve this:**
+- **IP whitelisting** - Googlebot, GPTBot, ClaudeBot use published IP ranges that sites whitelist
+- **Reverse DNS verification** - Sites verify bot identity via DNS lookups
+- **User agent + IP combo** - Both must match expected patterns
+
+**Impact on PolicyCheck:**
+- ✅ Works: Most sites (GitHub, Cloudflare, NYTimes, etc.)
+- ❌ Blocked: Some sites that aggressively block datacenter IPs (e.g., Medium)
+- 💡 Workaround: Test locally with `cargo run` or use sites that don't block datacenter IPs
+
+**Why this matters:** If compliance checkers are blocked, publishers can't verify their own policies are working correctly. This is a gap in the current web crawling ecosystem.
+
 ## Security Considerations
 
 - **Input validation**: URLs are validated before processing
