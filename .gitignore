@@ -1,0 +1,36 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output files
+*.json
+*.csv
+!example.csv
+
+# Test/temp files
+test_*.txt
+*.tmp
+*.bak
+
+# Proprietary data (extra safety)
+*partners*.csv
+*client*.csv
+*proprietary*
+*confidential*
+
+# Environment
+.env
+.env.local
