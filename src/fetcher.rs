@@ -12,7 +12,7 @@ impl RobotFetcher {
     pub fn new() -> Self {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("robotxt/0.1.0 (robots.txt analyzer)")
+            .user_agent("Mozilla/5.0 (compatible; PolicyCheck/0.1.0; +https://github.com/openattribution-org/policycheck)")
             .build()
             .expect("Failed to create HTTP client");
 
