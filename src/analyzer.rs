@@ -162,6 +162,7 @@ impl RobotAnalyzer {
     }
 
     /// Extract user agents from robots.txt content
+    #[allow(clippy::collapsible_if)]
     fn extract_user_agents(&self, content: &str) -> Vec<String> {
         let mut agents = Vec::new();
 
@@ -181,6 +182,7 @@ impl RobotAnalyzer {
     }
 
     /// Extract allowed and disallowed paths
+    #[allow(clippy::collapsible_if)]
     fn extract_paths(&self, content: &str) -> (Vec<String>, Vec<String>) {
         let mut allowed = Vec::new();
         let mut disallowed = Vec::new();
@@ -289,8 +291,8 @@ impl RobotAnalyzer {
     /// Supports * wildcard and $ end-of-pattern marker
     fn match_tdm_pattern(pattern: &str, path: &str) -> bool {
         // Remove $ end marker if present for processing
-        let (pattern, must_end) = if pattern.ends_with('$') {
-            (&pattern[..pattern.len() - 1], true)
+        let (pattern, must_end) = if let Some(stripped) = pattern.strip_suffix('$') {
+            (stripped, true)
         } else {
             (pattern, false)
         };

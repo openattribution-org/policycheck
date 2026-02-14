@@ -1,14 +1,25 @@
 [package]
 name = "policycheck"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+rust-version = "1.75"
 authors = ["OpenAttribution Contributors"]
 description = "Publisher policy compliance checker - verifies robots.txt, RSL licenses, and TDM policies"
+readme = "README.md"
 license = "MIT"
 repository = "https://github.com/openattribution-org/policycheck"
 homepage = "https://openattribution.org"
 keywords = ["robots", "rsl", "tdm", "policy", "compliance"]
 categories = ["web-programming", "command-line-utilities"]
+exclude = [
+    ".github/",
+    ".dockerignore",
+    "Dockerfile",
+    "fly.toml",
+    "CLAUDE.md",
+    "*.csv",
+    "!example.csv"
+]
 
 [dependencies]
 texting_robots = "0.2"
