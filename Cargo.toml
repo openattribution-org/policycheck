@@ -1,10 +1,10 @@
 [package]
 name = "policycheck"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.75"
 authors = ["OpenAttribution Contributors"]
-description = "Publisher policy compliance checker - verifies robots.txt, RSL licenses, and TDM policies"
+description = "Publisher policy compliance checker - verifies robots.txt, RSL licenses, Content Signals, and TDM policies"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/openattribution-org/policycheck"

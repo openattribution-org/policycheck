@@ -9,8 +9,8 @@ use axum::{
     Router,
 };
 use serde_json::json;
-use tower_http::cors::{Any, CorsLayer};
 use std::env;
+use tower_http::cors::{Any, CorsLayer};
 
 pub async fn start_server(host: &str, port: u16) -> Result<()> {
     // CORS configuration - allow specific origins via ALLOWED_ORIGINS env var
