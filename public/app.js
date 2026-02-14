@@ -1,7 +1,5 @@
 // Configuration
-// Update this URL once the backend is deployed to Fly.io
-const API_URL = 'http://localhost:3000';
-// Production: 'https://api.policycheck.openattribution.org';
+const API_URL = 'https://policycheck-d7wv0g.fly.dev';
 
 let currentResults = null;
 
