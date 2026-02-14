@@ -31,6 +31,17 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 - 📝 **CSV Batch Processing** - Analyze thousands of URLs concurrently
 - ⚡ **Concurrent** - Parallel URL analysis
 
+## Web UI
+
+Try PolicyCheck instantly at **[openattribution.org/policycheck](https://openattribution.org/policycheck/)**
+
+- 🌐 No installation required
+- 📊 Interactive analysis with visual results
+- 📥 Export to CSV for bulk analysis
+- 🤖 See AI bot blocking status at a glance
+
+Perfect for quick checks before integrating the API or CLI.
+
 ## Quick Start
 
 ### Installation
@@ -262,11 +273,25 @@ Includes `ai_bot_analysis` array with per-bot status - perfect for integration w
 
 ## Running as a Service
 
-Start the HTTP API server:
+### Production API
+
+The PolicyCheck API is available at **https://policycheck-d7wv0g.fly.dev**
+
+No authentication required for public use. Rate limits may apply.
+
+### Run Your Own Server
+
+Start the HTTP API server locally:
 
 ```bash
 policycheck serve --port 3000 --host 0.0.0.0
 ```
+
+**Features:**
+- ✅ CORS enabled (all origins)
+- ✅ JSON request/response
+- ✅ Concurrent request handling
+- ✅ 10s timeout per URL
 
 ### API Endpoints
 
@@ -295,7 +320,7 @@ Analyze robots.txt and RSL licenses for given URLs.
 }
 ```
 
-**Response:**
+**Success Response:**
 ```json
 {
   "total": 2,
@@ -325,8 +350,43 @@ Analyze robots.txt and RSL licenses for given URLs.
 }
 ```
 
+**Error Response (with failures):**
+```json
+{
+  "total": 2,
+  "successful": 1,
+  "failed": 1,
+  "results": [
+    {
+      "url": "https://invalid-domain-xyz.com",
+      "robots_url": "https://invalid-domain-xyz.com/robots.txt",
+      "status": "fetch_error",
+      "error": "Failed to fetch robots.txt",
+      "user_agents": [],
+      "ai_bot_analysis": []
+    },
+    {
+      "url": "https://github.com",
+      "status": "success",
+      "error": null
+    }
+  ]
+}
+```
+
 ### Example with curl
 
+**Using production API:**
+```bash
+curl -X POST https://policycheck-d7wv0g.fly.dev/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://www.nytimes.com"],
+    "user_agent": "GPTBot"
+  }'
+```
+
+**Using local server:**
 ```bash
 curl -X POST http://localhost:3000/analyze \
   -H "Content-Type: application/json" \
@@ -556,11 +616,8 @@ spec:
 - [ ] AI plugin manifest detection (`/.well-known/ai-plugin.json`)
 - [ ] OpenID configuration for gated content
 - [ ] Caching layer for repeated checks
-- [ ] Web UI dashboard
 - [ ] GitHub Action for PR compliance checks
 - [ ] Pre-commit hook for URL validation
-
-See [WELL_KNOWN_PROPOSAL.md](WELL_KNOWN_PROPOSAL.md) for detailed implementation plans.
 
 ## Command Reference
 
@@ -630,12 +687,15 @@ PolicyCheck is part of the [OpenAttribution](https://openattribution.org) initia
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-Third-party software notices and attributions are in [NOTICE](NOTICE) and [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+Third-party software notices are in [NOTICE](NOTICE).
 
 ### Key Dependencies
 
 - **texting_robots** (MIT OR Apache-2.0) - Robust robots.txt parsing by [@Smerity](https://github.com/Smerity)
-- See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for complete list
+- **reqwest** (MIT OR Apache-2.0) - HTTP client
+- **clap** (MIT OR Apache-2.0) - CLI argument parsing
+- **axum** (MIT) - HTTP server framework
+- See [NOTICE](NOTICE) for complete attribution list
 
 ## OpenAttribution Initiative
 
