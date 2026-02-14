@@ -35,3 +35,5 @@ test_*.txt
 .env
 .env.local
 CLAUDE.md
+public/styles.css
+public/node_modules/

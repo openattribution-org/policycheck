@@ -1,7 +1,7 @@
 // Configuration
-const API_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : 'https://api.policycheck.openattribution.org';
+// Update this URL once the backend is deployed to Fly.io
+const API_URL = 'http://localhost:3000';
+// Production: 'https://api.policycheck.openattribution.org';
 
 let currentResults = null;
 

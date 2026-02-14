@@ -102,9 +102,10 @@ curl https://api.policycheck.openattribution.org/health
 
 3. **Configure Build Settings**
    ```
-   Build command: (leave empty)
+   Build command: cd public && npm install && npm run build:css
    Build output directory: /public
    Root directory: (leave empty)
+   Environment variables: (none needed)
    ```
 
 4. **Deploy**
