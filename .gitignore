@@ -33,6 +33,7 @@ test_*.txt
 # Environment
 .env
 .env.local
-CLAUDE.md
+
+# Frontend build artifacts
 public/styles.css
 public/node_modules/
