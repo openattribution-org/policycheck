@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolicyCheck - Web Attribution & Compliance Scanner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🔍 PolicyCheck</h1>
+            <p class="subtitle">Web Attribution & Compliance Scanner</p>
+            <p class="description">Check robots.txt, RSL licenses, and TDM policies for any domain</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Input Section -->
+        <div class="input-section">
+            <div class="tabs">
+                <button class="tab active" data-tab="single">Single URL</button>
+                <button class="tab" data-tab="csv">CSV Upload</button>
+            </div>
+
+            <!-- Single URL Input -->
+            <div id="single-tab" class="tab-content active">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="url-input"
+                        placeholder="https://example.com"
+                        value="https://github.com"
+                    >
+                    <button id="analyze-btn" class="btn-primary">Analyze</button>
+                </div>
+                <p class="hint">Enter a domain or URL to check its compliance policies</p>
+            </div>
+
+            <!-- CSV Upload -->
+            <div id="csv-tab" class="tab-content">
+                <div class="upload-area" id="upload-area">
+                    <input type="file" id="csv-file" accept=".csv" hidden>
+                    <div class="upload-content">
+                        <span class="upload-icon">📄</span>
+                        <p>Drag & drop a CSV file or <label for="csv-file" class="upload-label">browse</label></p>
+                        <p class="hint">CSV should have a "url" column with domains to check</p>
+                    </div>
+                </div>
+                <button id="analyze-csv-btn" class="btn-primary" disabled>Analyze CSV</button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Analyzing...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="results hidden">
+            <div class="results-header">
+                <h2>Results</h2>
+                <div class="results-actions">
+                    <button id="download-json" class="btn-secondary">Download JSON</button>
+                    <button id="download-csv" class="btn-secondary">Download CSV</button>
+                </div>
+            </div>
+
+            <div id="summary" class="summary"></div>
+
+            <div class="table-container">
+                <table id="results-table">
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Status</th>
+                            <th>Path Allowed</th>
+                            <th>RSL Licenses</th>
+                            <th>TDM Reserved</th>
+                            <th>User Agents</th>
+                            <th>Crawl Delay</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error hidden">
+            <p id="error-message"></p>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Part of <a href="https://openattribution.org" target="_blank">OpenAttribution</a> initiative</p>
+            <p><a href="https://github.com/openattribution-org/policycheck" target="_blank">GitHub</a> • <a href="https://github.com/openattribution-org/policycheck#readme" target="_blank">Documentation</a></p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

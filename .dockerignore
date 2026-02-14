@@ -1,0 +1,9 @@
+target/
+.git/
+.github/
+public/
+*.md
+.gitignore
+.dockerignore
+Dockerfile
+fly.toml

@@ -34,3 +34,4 @@ test_*.txt
 # Environment
 .env
 .env.local
+CLAUDE.md
