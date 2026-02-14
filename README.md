@@ -15,6 +15,7 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 
 - ✅ **Robots.txt** - What paths you can crawl (REP/RFC 9309)
 - 📜 **RSL Licenses** - Required licensing terms (Responsible Sourcing License)
+- 🎯 **Content Signals** - AI usage preferences (Cloudflare's policy framework)
 - 🤖 **TDM Policies** - Text & Data Mining permissions (coming soon)
 - 🔒 **Privacy Controls** - DNT, GPC signals (coming soon)
 - 📧 **Security Contacts** - Who to contact about scraping (coming soon)
@@ -22,6 +23,7 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 ## Features
 
 - 🤖 **AI Bot Analysis** - Check 26 known AI crawlers (GPTBot, ClaudeBot, CCBot, etc.)
+- 🎯 **Content Signals** - Detect Cloudflare's AI policy signals (search, ai-input, ai-train)
 - 📊 **CSV Export** - Major AI bots as columns for advertiser analysis
 - 🚀 **Fast** - Built with Rust, battle-tested parser (34M+ robots.txt files)
 - 📦 **Portable** - Single binary, no dependencies
@@ -225,6 +227,62 @@ Sitemaps:
 ```
 
 For more information about RSL, see the [RSL Standard](https://rslstandard.org/rsl#_4-associating-rsl-licenses-with-digital-assets).
+
+## Content Signals (Cloudflare AI Policy Framework)
+
+PolicyCheck automatically detects **Content Signals** - Cloudflare's framework for expressing AI usage preferences in robots.txt. Adopted by over 3.8 million domains using Cloudflare's managed robots.txt.
+
+### What are Content Signals?
+
+Content Signals allow websites to express preferences for how their content can be used **after** it's been accessed. Three signals are defined:
+
+- **`search`** - Traditional search indexing and results (not AI-generated summaries)
+- **`ai-input`** - Inputting content into AI models (RAG, grounding, generative AI search)
+- **`ai-train`** - Training or fine-tuning AI models
+
+### Format
+
+```
+User-agent: *
+Content-Signal: search=yes, ai-train=no, ai-input=yes
+Allow: /
+```
+
+Values can be `yes` (permitted) or `no` (not permitted). Omitting a signal means no preference is expressed.
+
+### Example Output
+
+**Compact format:**
+```
+Content Signals:
+  ✓ search: yes
+  ✗ ai-train: no
+  ✓ ai-input: yes
+```
+
+**CSV format** includes columns: `CS-Search`, `CS-AI-Input`, `CS-AI-Train`
+
+**JSON format:**
+```json
+{
+  "content_signal_search": "yes",
+  "content_signal_ai_input": "yes",
+  "content_signal_ai_train": "no"
+}
+```
+
+### Real-World Example
+
+```bash
+policycheck analyze --url https://blog.cloudflare.com --format compact
+```
+
+Cloudflare's blog permits all AI usage:
+- `search=yes` - Allowed in search indexes
+- `ai-input=yes` - Allowed for AI search/RAG
+- `ai-train=yes` - Allowed for model training
+
+For more information, see [Cloudflare's Content Signals announcement](https://blog.cloudflare.com/content-signals-policy).
 
 ## Output Formats
 
@@ -670,6 +728,7 @@ PolicyCheck implements the following standards:
 
 - ✅ **RFC 9309**: Robots Exclusion Protocol (REP)
 - ✅ **RSL Standard**: Responsible Sourcing License
+- ✅ **Content Signals**: Cloudflare's AI Policy Framework (CC0 License)
 - 🚧 **W3C TDMRep**: Text and Data Mining Reservation Protocol (planned)
 - 🚧 **RFC 9116**: security.txt (planned)
 - 🚧 **RFC 8615**: Well-Known URIs (planned)
