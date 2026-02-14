@@ -71,6 +71,12 @@ async fn analyze_handler(
         return Err((StatusCode::BAD_REQUEST, "No URLs provided".to_string()));
     }
 
+    println!(
+        "📊 Analyzing {} URL(s) with user-agent: {}",
+        request.urls.len(),
+        request.user_agent
+    );
+
     let analyzer = RobotAnalyzer::new(request.user_agent);
     let results = analyzer.analyze_urls(&request.urls).await;
 
