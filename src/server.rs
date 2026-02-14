@@ -10,12 +10,28 @@ use axum::{
 };
 use serde_json::json;
 use tower_http::cors::{Any, CorsLayer};
+use std::env;
 
 pub async fn start_server(host: &str, port: u16) -> Result<()> {
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+    // CORS configuration - allow specific origins via ALLOWED_ORIGINS env var
+    // Format: comma-separated list (e.g., "https://openattribution.org,https://example.com")
+    // If not set, allows all origins (useful for development and open source deployments)
+    let cors = if let Ok(allowed_origins) = env::var("ALLOWED_ORIGINS") {
+        let origins: Vec<_> = allowed_origins
+            .split(',')
+            .filter_map(|s| s.trim().parse().ok())
+            .collect();
+
+        CorsLayer::new()
+            .allow_origin(origins)
+            .allow_methods(Any)
+            .allow_headers(Any)
+    } else {
+        CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any)
+    };
 
     let app = Router::new()
         .route("/", get(health_check))
