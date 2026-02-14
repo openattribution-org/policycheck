@@ -1,6 +1,6 @@
 # Fly.io configuration for PolicyCheck API
-app = "policycheck-api"
-primary_region = "sea"
+app = "policycheck"
+primary_region = "lhr"
 
 [build]
 
