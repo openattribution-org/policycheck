@@ -167,13 +167,14 @@ impl RobotAnalyzer {
 
         for line in content.lines() {
             let line = line.trim();
-            if line.to_lowercase().starts_with("user-agent:")
-                && let Some(agent) = line.split(':').nth(1) {
+            if line.to_lowercase().starts_with("user-agent:") {
+                if let Some(agent) = line.split(':').nth(1) {
                     let agent = agent.trim().to_string();
                     if !agents.contains(&agent) {
                         agents.push(agent);
                     }
                 }
+            }
         }
 
         agents
@@ -194,13 +195,14 @@ impl RobotAnalyzer {
                         allowed.push(path.to_string());
                     }
                 }
-            } else if line.to_lowercase().starts_with("disallow:")
-                && let Some(path) = line.split(':').nth(1) {
+            } else if line.to_lowercase().starts_with("disallow:") {
+                if let Some(path) = line.split(':').nth(1) {
                     let path = path.trim();
                     if !path.is_empty() && !disallowed.contains(&path.to_string()) {
                         disallowed.push(path.to_string());
                     }
                 }
+            }
         }
 
         (allowed, disallowed)
