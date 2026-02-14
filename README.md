@@ -4,8 +4,9 @@
 
 A fast, portable tool for checking web scraping compliance across robots.txt, RSL licenses, and TDM policies. Built with Rust for the [OpenAttribution](https://openattribution.org) initiative.
 
+[![Crates.io](https://img.shields.io/crates/v/policycheck.svg)](https://crates.io/crates/policycheck)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![OpenAttribution](https://img.shields.io/badge/OpenAttribution-🔍-green.svg)](https://openattribution.org)
 
 ## What is PolicyCheck?
@@ -46,9 +47,17 @@ Perfect for quick checks before integrating the API or CLI.
 
 ### Installation
 
-#### From Source (Recommended)
+#### From crates.io (Recommended)
 
-Requires Rust 1.85+ (for edition 2024 support):
+Requires Rust 1.75+:
+
+```bash
+cargo install policycheck
+```
+
+#### From Source
+
+For development or the latest unreleased features:
 
 ```bash
 git clone https://github.com/openattribution-org/policycheck.git
@@ -57,12 +66,6 @@ cargo build --release
 ```
 
 The binary will be at `target/release/policycheck`.
-
-#### Using Cargo
-
-```bash
-cargo install --path .
-```
 
 ### Basic Usage
 
