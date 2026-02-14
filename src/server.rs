@@ -3,7 +3,7 @@ use crate::models::{AnalysisStatus, AnalyzeRequest, AnalyzeResponse};
 use anyhow::Result;
 use axum::{
     extract::Json,
-    http::StatusCode,
+    http::{HeaderValue, StatusCode},
     response::IntoResponse,
     routing::{get, post},
     Router,
@@ -17,9 +17,9 @@ pub async fn start_server(host: &str, port: u16) -> Result<()> {
     // Format: comma-separated list (e.g., "https://openattribution.org,https://example.com")
     // If not set, allows all origins (useful for development and open source deployments)
     let cors = if let Ok(allowed_origins) = env::var("ALLOWED_ORIGINS") {
-        let origins: Vec<_> = allowed_origins
+        let origins: Vec<HeaderValue> = allowed_origins
             .split(',')
-            .filter_map(|s| s.trim().parse().ok())
+            .filter_map(|s| s.trim().parse::<HeaderValue>().ok())
             .collect();
 
         CorsLayer::new()
