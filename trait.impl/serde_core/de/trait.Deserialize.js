@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["policycheck",[["impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html\" title=\"trait serde_core::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"enum\" href=\"policycheck/models/enum.AnalysisStatus.html\" title=\"enum policycheck::models::AnalysisStatus\">AnalysisStatus</a>"],["impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html\" title=\"trait serde_core::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"policycheck/models/struct.AnalysisResult.html\" title=\"struct policycheck::models::AnalysisResult\">AnalysisResult</a>"],["impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html\" title=\"trait serde_core::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"policycheck/models/struct.AnalyzeRequest.html\" title=\"struct policycheck::models::AnalyzeRequest\">AnalyzeRequest</a>"],["impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html\" title=\"trait serde_core::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"policycheck/models/struct.TdmPolicy.html\" title=\"struct policycheck::models::TdmPolicy\">TdmPolicy</a>"],["impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html\" title=\"trait serde_core::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"policycheck/models/struct.TdmRule.html\" title=\"struct policycheck::models::TdmRule\">TdmRule</a>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[1685]}

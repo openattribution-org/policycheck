@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["policycheck",[["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"enum\" href=\"policycheck/models/enum.AnalysisStatus.html\" title=\"enum policycheck::models::AnalysisStatus\">AnalysisStatus</a>"],["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"policycheck/models/struct.AnalysisResult.html\" title=\"struct policycheck::models::AnalysisResult\">AnalysisResult</a>"],["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"policycheck/models/struct.AnalyzeResponse.html\" title=\"struct policycheck::models::AnalyzeResponse\">AnalyzeResponse</a>"],["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"policycheck/models/struct.TdmPolicy.html\" title=\"struct policycheck::models::TdmPolicy\">TdmPolicy</a>"],["impl <a class=\"trait\" href=\"https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html\" title=\"trait serde_core::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"policycheck/models/struct.TdmRule.html\" title=\"struct policycheck::models::TdmRule\">TdmRule</a>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[1558]}

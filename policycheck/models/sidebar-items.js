@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AnalysisStatus"],"fn":["default_user_agent"],"struct":["AnalysisResult","AnalyzeRequest","AnalyzeResponse","TdmPolicy","TdmRule"]};
