@@ -101,6 +101,9 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
         "Path Allowed",
         "RSL Licenses",
         "TDM Reserved",
+        "CS-Search",
+        "CS-AI-Input",
+        "CS-AI-Train",
     ];
 
     // Add bot columns
@@ -145,6 +148,29 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
             "N/A"
         };
         row.push(tdm_reserved.to_string());
+
+        // Add Content Signal columns
+        row.push(
+            result
+                .content_signal_search
+                .as_deref()
+                .unwrap_or("unspecified")
+                .to_string(),
+        );
+        row.push(
+            result
+                .content_signal_ai_input
+                .as_deref()
+                .unwrap_or("unspecified")
+                .to_string(),
+        );
+        row.push(
+            result
+                .content_signal_ai_train
+                .as_deref()
+                .unwrap_or("unspecified")
+                .to_string(),
+        );
 
         // Add bot status columns
         for major_bot in &major_bots {
@@ -262,6 +288,27 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
                     output.push_str("RSL Licenses (Group-Scoped):\n");
                     for license in &result.group_licenses {
                         output.push_str(&format!("  📜 {}\n", license));
+                    }
+                    output.push('\n');
+                }
+
+                // Content Signals (Cloudflare AI policy framework)
+                if result.content_signal_search.is_some()
+                    || result.content_signal_ai_input.is_some()
+                    || result.content_signal_ai_train.is_some()
+                {
+                    output.push_str("Content Signals:\n");
+                    if let Some(ref search) = result.content_signal_search {
+                        let icon = if search == "yes" { "✓" } else { "✗" };
+                        output.push_str(&format!("  {} search: {}\n", icon, search));
+                    }
+                    if let Some(ref ai_input) = result.content_signal_ai_input {
+                        let icon = if ai_input == "yes" { "✓" } else { "✗" };
+                        output.push_str(&format!("  {} ai-input: {}\n", icon, ai_input));
+                    }
+                    if let Some(ref ai_train) = result.content_signal_ai_train {
+                        let icon = if ai_train == "yes" { "✓" } else { "✗" };
+                        output.push_str(&format!("  {} ai-train: {}\n", icon, ai_train));
                     }
                     output.push('\n');
                 }

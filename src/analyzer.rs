@@ -104,6 +104,10 @@ impl RobotAnalyzer {
             global_licenses.clone()
         };
 
+        // Extract Content Signals (Cloudflare's AI policy framework)
+        let (content_signal_search, content_signal_ai_input, content_signal_ai_train) =
+            self.extract_content_signals(&content);
+
         // Check if the original URL path is allowed
         let is_path_allowed = robot.allowed(url);
 
@@ -129,6 +133,9 @@ impl RobotAnalyzer {
             global_licenses,
             group_licenses,
             active_licenses,
+            content_signal_search,
+            content_signal_ai_input,
+            content_signal_ai_train,
             tdm_policy,
             ai_bot_analysis,
             error: None,
@@ -285,6 +292,83 @@ impl RobotAnalyzer {
         }
 
         (global_licenses, group_licenses)
+    }
+
+    /// Extract Content Signals from robots.txt (Cloudflare's AI policy framework)
+    /// Returns (search, ai-input, ai-train) signals as Option<String>
+    /// Format: Content-Signal: search=yes, ai-train=no, ai-input=yes
+    fn extract_content_signals(
+        &self,
+        content: &str,
+    ) -> (Option<String>, Option<String>, Option<String>) {
+        let mut search_signal = None;
+        let mut ai_input_signal = None;
+        let mut ai_train_signal = None;
+        let mut in_matching_group = false;
+        let mut current_user_agents: Vec<String> = Vec::new();
+
+        for line in content.lines() {
+            let line = line.trim();
+
+            // Skip comments and empty lines
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+
+            let line_lower = line.to_lowercase();
+
+            // Track user-agent groups
+            if line_lower.starts_with("user-agent:") {
+                if let Some(agent) = line.split(':').nth(1) {
+                    let agent = agent.trim();
+                    current_user_agents.push(agent.to_string());
+
+                    // Check if this matches our target user agent
+                    if agent == self.user_agent || agent == "*" {
+                        in_matching_group = true;
+                    }
+                }
+            } else if line_lower.starts_with("content-signal:") {
+                // Only process if we're in the matching group or no group (global)
+                if current_user_agents.is_empty() || in_matching_group {
+                    // Extract the value part after "Content-Signal:"
+                    if let Some(signals_str) = line.split(':').nth(1) {
+                        // Parse comma-separated key=value pairs
+                        for pair in signals_str.split(',') {
+                            let pair = pair.trim();
+                            if let Some((key, value)) = pair.split_once('=') {
+                                let key = key.trim().to_lowercase();
+                                let value = value.trim().to_lowercase();
+
+                                // Only accept "yes" or "no" values
+                                if value == "yes" || value == "no" {
+                                    match key.as_str() {
+                                        "search" => search_signal = Some(value),
+                                        "ai-input" => ai_input_signal = Some(value),
+                                        "ai-train" => ai_train_signal = Some(value),
+                                        _ => {} // Ignore unknown signals
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if !line_lower.starts_with("allow:")
+                && !line_lower.starts_with("disallow:")
+                && !line_lower.starts_with("sitemap:")
+                && !line_lower.starts_with("crawl-delay:")
+                && !line_lower.starts_with("license:")
+                && !current_user_agents.is_empty()
+            {
+                // Reset group context on unrecognized directive
+                if line.contains(':') {
+                    current_user_agents.clear();
+                    in_matching_group = false;
+                }
+            }
+        }
+
+        (search_signal, ai_input_signal, ai_train_signal)
     }
 
     /// Match a path against a TDM location pattern
@@ -519,6 +603,71 @@ License: https://example.com/wildcard.xml
         // Wildcard should match any user agent
         assert_eq!(group.len(), 1);
         assert_eq!(group[0], "https://example.com/wildcard.xml");
+    }
+
+    #[test]
+    fn test_content_signals_basic() {
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let content = r#"
+User-agent: *
+Content-Signal: search=yes, ai-train=no, ai-input=yes
+Allow: /
+        "#;
+        let (search, ai_input, ai_train) = analyzer.extract_content_signals(content);
+
+        assert_eq!(search, Some("yes".to_string()));
+        assert_eq!(ai_input, Some("yes".to_string()));
+        assert_eq!(ai_train, Some("no".to_string()));
+    }
+
+    #[test]
+    fn test_content_signals_partial() {
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let content = r#"
+User-agent: *
+Content-Signal: search=yes, ai-train=no
+Allow: /
+        "#;
+        let (search, ai_input, ai_train) = analyzer.extract_content_signals(content);
+
+        assert_eq!(search, Some("yes".to_string()));
+        assert_eq!(ai_input, None);
+        assert_eq!(ai_train, Some("no".to_string()));
+    }
+
+    #[test]
+    fn test_content_signals_group_scoped() {
+        let analyzer = RobotAnalyzer::new("GPTBot".to_string());
+        let content = r#"
+User-agent: Googlebot
+Content-Signal: search=yes, ai-train=yes
+
+User-agent: GPTBot
+Content-Signal: search=yes, ai-train=no, ai-input=no
+Disallow: /
+        "#;
+        let (search, ai_input, ai_train) = analyzer.extract_content_signals(content);
+
+        // Should only get signals from GPTBot group
+        assert_eq!(search, Some("yes".to_string()));
+        assert_eq!(ai_input, Some("no".to_string()));
+        assert_eq!(ai_train, Some("no".to_string()));
+    }
+
+    #[test]
+    fn test_content_signals_cloudflare_format() {
+        // Test the exact format used by Cloudflare's managed robots.txt
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let content = r#"
+User-Agent: *
+Content-Signal: search=yes, ai-train=no
+Allow: /
+        "#;
+        let (search, ai_input, ai_train) = analyzer.extract_content_signals(content);
+
+        assert_eq!(search, Some("yes".to_string()));
+        assert_eq!(ai_input, None, "ai-input not specified");
+        assert_eq!(ai_train, Some("no".to_string()));
     }
 
     #[test]
