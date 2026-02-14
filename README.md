@@ -2,11 +2,11 @@
 
 **Web Attribution and Compliance Scanner**
 
-A fast, portable tool for checking web scraping compliance across robots.txt, RSL licenses, and TDM policies. Built with Rust for the [PolicyCheckibution](https://policycheckibution.org) initiative.
+A fast, portable tool for checking web scraping compliance across robots.txt, RSL licenses, and TDM policies. Built with Rust for the [OpenAttribution](https://openattribution.org) initiative.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
-[![PolicyCheckibution](https://img.shields.io/badge/PolicyCheckibution-🔍-green.svg)](https://policycheckibution.org)
+[![OpenAttribution](https://img.shields.io/badge/OpenAttribution-🔍-green.svg)](https://openattribution.org)
 
 ## What is PolicyCheck?
 
@@ -38,7 +38,7 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 Requires Rust 1.85+ (for edition 2024 support):
 
 ```bash
-git clone https://github.com/policycheckibution-org/policycheck.git
+git clone https://github.com/openattribution-org/policycheck.git
 cd policycheck
 cargo build --release
 ```
@@ -266,13 +266,22 @@ curl -X POST http://localhost:3000/analyze \
 
 ## CSV Batch Processing
 
-Create a CSV file (`partners.csv`):
+Create a CSV file with URLs to check:
 
 ```csv
-Company Name,Company URL
-Acme Corp,https://acme.com
-Example Inc,https://example.org
-Test Ltd,https://test.io
+url
+https://acme.com
+https://example.org
+https://test.io
+```
+
+Or with identifiers for tracking:
+
+```csv
+source_id,url
+acme,https://acme.com
+example,https://example.org
+test,https://test.io
 ```
 
 Analyze all URLs:
@@ -282,10 +291,13 @@ policycheck analyze --csv partners.csv --format compact > results.txt
 ```
 
 PolicyCheck will automatically:
-- Find the URL column (looks for "url", "URL", "Company URL", "website", etc.)
+- Find the URL column (looks for headers containing "url", "link", "website", etc.)
+- Default to the first column if no URL header is found
 - Add `https://` prefix if missing
 - Skip empty rows
 - Process all URLs in parallel
+
+**Note**: Only the URL column is used for analysis. Additional columns (like `source_id`) can be present for your own tracking but are ignored by PolicyCheck.
 
 ## Integration Examples
 
@@ -406,7 +418,7 @@ spec:
     spec:
       containers:
       - name: policycheck
-        image: policycheckibution/policycheck:latest
+        image: openattribution/policycheck:latest
         ports:
         - containerPort: 3000
         livenessProbe:
@@ -510,7 +522,7 @@ PolicyCheck implements the following standards:
 
 ## Contributing
 
-PolicyCheck is part of the [PolicyCheckibution](https://policycheckibution.org) initiative. Contributions welcome!
+PolicyCheck is part of the [OpenAttribution](https://openattribution.org) initiative. Contributions welcome!
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -531,22 +543,22 @@ Third-party software notices and attributions are in [NOTICE](NOTICE) and [ATTRI
 - **texting_robots** (MIT OR Apache-2.0) - Robust robots.txt parsing by [@Smerity](https://github.com/Smerity)
 - See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for complete list
 
-## PolicyCheckibution Initiative
+## OpenAttribution Initiative
 
-PolicyCheck is built for the [PolicyCheckibution](https://policycheckibution.org) initiative, which aims to make web attribution transparent, accessible, and machine-readable.
+PolicyCheck is built for the [OpenAttribution](https://openattribution.org) initiative, which aims to make web attribution transparent, accessible, and machine-readable.
 
 **Mission**: Enable responsible AI development through clear content licensing and attribution standards.
 
 ## Support
 
-- 🐛 **Report issues**: [GitHub Issues](https://github.com/policycheckibution-org/policycheck/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/policycheckibution-org/policycheck/discussions)
-- 📧 **Contact**: [policycheckibution.org](https://policycheckibution.org)
-- 🌐 **Website**: [PolicyCheckibution.org](https://policycheckibution.org)
+- 🐛 **Report issues**: [GitHub Issues](https://github.com/openattribution-org/policycheck/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/openattribution-org/policycheck/discussions)
+- 📧 **Contact**: [openattribution.org](https://openattribution.org)
+- 🌐 **Website**: [OpenAttribution.org](https://openattribution.org)
 
 ## Acknowledgments
 
-Built with ❤️ by the PolicyCheckibution community.
+Built with ❤️ by the OpenAttribution community.
 
 Special thanks to:
 - [@Smerity](https://github.com/Smerity) for texting_robots
@@ -555,4 +567,4 @@ Special thanks to:
 
 ---
 
-**Made with Rust 🦀 | Part of PolicyCheckibution 🔍 | MIT Licensed 📜**
+**Made with Rust 🦀 | Part of OpenAttribution 🔍 | MIT Licensed 📜**
