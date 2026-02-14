@@ -108,8 +108,8 @@ impl RobotFetcher {
             .context("Failed to read TDM response body")?;
 
         // Parse JSON array of TDM rules
-        let rules: Vec<TdmRule> = serde_json::from_str(&content)
-            .context("Failed to parse tdmrep.json")?;
+        let rules: Vec<TdmRule> =
+            serde_json::from_str(&content).context("Failed to parse tdmrep.json")?;
 
         Ok(rules)
     }

@@ -20,8 +20,8 @@ pub enum CrawlerCategory {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BotStatus {
-    Blocked,  // Disallowed in robots.txt
-    Allowed,  // Allowed or not mentioned in robots.txt (can access per robots.txt)
+    Blocked, // Disallowed in robots.txt
+    Allowed, // Allowed or not mentioned in robots.txt (can access per robots.txt)
 }
 
 impl AICrawler {

@@ -2,11 +2,11 @@ use crate::analyzer::RobotAnalyzer;
 use crate::models::{AnalysisStatus, AnalyzeRequest, AnalyzeResponse};
 use anyhow::Result;
 use axum::{
-    Router,
     extract::Json,
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
+    Router,
 };
 use serde_json::json;
 use tower_http::cors::{Any, CorsLayer};

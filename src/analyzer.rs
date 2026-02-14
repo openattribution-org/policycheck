@@ -532,7 +532,10 @@ License: https://example.com/wildcard.xml
     #[test]
     fn test_tdm_pattern_wildcard() {
         assert!(RobotAnalyzer::match_tdm_pattern("/docs/*", "/docs/page"));
-        assert!(RobotAnalyzer::match_tdm_pattern("/docs/*", "/docs/page/sub"));
+        assert!(RobotAnalyzer::match_tdm_pattern(
+            "/docs/*",
+            "/docs/page/sub"
+        ));
         assert!(RobotAnalyzer::match_tdm_pattern("*.pdf", "/file.pdf"));
         assert!(RobotAnalyzer::match_tdm_pattern("*.pdf", "/docs/file.pdf"));
         assert!(!RobotAnalyzer::match_tdm_pattern("/docs/*", "/other/page"));
@@ -543,14 +546,26 @@ License: https://example.com/wildcard.xml
         assert!(RobotAnalyzer::match_tdm_pattern("/docs$", "/docs"));
         assert!(!RobotAnalyzer::match_tdm_pattern("/docs$", "/docs/"));
         assert!(!RobotAnalyzer::match_tdm_pattern("/docs$", "/docs/page"));
-        assert!(RobotAnalyzer::match_tdm_pattern("/docs/page$", "/docs/page"));
+        assert!(RobotAnalyzer::match_tdm_pattern(
+            "/docs/page$",
+            "/docs/page"
+        ));
     }
 
     #[test]
     fn test_tdm_pattern_complex() {
-        assert!(RobotAnalyzer::match_tdm_pattern("/*/public/*", "/docs/public/file"));
-        assert!(RobotAnalyzer::match_tdm_pattern("/docs/*.pdf$", "/docs/file.pdf"));
-        assert!(!RobotAnalyzer::match_tdm_pattern("/docs/*.pdf$", "/docs/file.pdf.bak"));
+        assert!(RobotAnalyzer::match_tdm_pattern(
+            "/*/public/*",
+            "/docs/public/file"
+        ));
+        assert!(RobotAnalyzer::match_tdm_pattern(
+            "/docs/*.pdf$",
+            "/docs/file.pdf"
+        ));
+        assert!(!RobotAnalyzer::match_tdm_pattern(
+            "/docs/*.pdf$",
+            "/docs/file.pdf.bak"
+        ));
     }
 
     #[tokio::test]
@@ -571,7 +586,9 @@ License: https://example.com/wildcard.xml
         ];
 
         // Test root path matches first rule
-        let policy = analyzer.evaluate_tdm_policy("https://example.com/", rules.clone()).await;
+        let policy = analyzer
+            .evaluate_tdm_policy("https://example.com/", rules.clone())
+            .await;
         assert!(policy.is_some());
         let policy = policy.unwrap();
         assert!(policy.is_reserved);
@@ -591,7 +608,9 @@ License: https://example.com/wildcard.xml
             },
         ];
 
-        let policy2 = analyzer.evaluate_tdm_policy("https://example.com/public/data", rules2).await;
+        let policy2 = analyzer
+            .evaluate_tdm_policy("https://example.com/public/data", rules2)
+            .await;
         assert!(policy2.is_some());
         let policy2 = policy2.unwrap();
         assert!(!policy2.is_reserved);

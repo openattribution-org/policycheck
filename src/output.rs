@@ -271,7 +271,11 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
                     output.push_str(&format!(
                         "  {} TDM Reservation: {}\n",
                         if tdm.is_reserved { "⚠️ " } else { "✓" },
-                        if tdm.is_reserved { "YES (reserved)" } else { "NO (unreserved)" }
+                        if tdm.is_reserved {
+                            "YES (reserved)"
+                        } else {
+                            "NO (unreserved)"
+                        }
                     ));
 
                     if let Some(ref matched) = tdm.matched_rule {
