@@ -522,6 +522,78 @@ License: https://example.com/wildcard.xml
     }
 
     #[test]
+    fn test_separate_user_agent_groups_dont_mix_licenses() {
+        let analyzer = RobotAnalyzer::new("GPTBot".to_string());
+        let content = r#"
+User-agent: Googlebot
+License: https://example.com/google-only.xml
+Disallow: /admin
+
+User-agent: GPTBot
+License: https://example.com/gpt-only.xml
+Disallow: /
+        "#;
+        let (global, group) = analyzer.extract_licenses(content);
+
+        // Should not collect licenses from other user-agent groups
+        assert_eq!(global.len(), 0, "Should have no global licenses");
+        assert_eq!(group.len(), 1, "Should have exactly 1 group license");
+        assert_eq!(group[0], "https://example.com/gpt-only.xml");
+        assert!(
+            !group.contains(&"https://example.com/google-only.xml".to_string()),
+            "Should NOT include Googlebot's license"
+        );
+    }
+
+    #[test]
+    fn test_rsl_real_world_rslstandard_org() {
+        // Based on rslstandard.org's robots.txt (as of 2026-02-14)
+        // Tests global license pattern used by RSL Standard's own site
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let content = r#"
+License: https://rslcollective.org/royalty.xml
+
+User-agent: *
+Disallow:
+        "#;
+        let (global, group) = analyzer.extract_licenses(content);
+
+        assert_eq!(global.len(), 1);
+        assert_eq!(global[0], "https://rslcollective.org/royalty.xml");
+        assert_eq!(group.len(), 0, "No group-scoped licenses");
+
+        // Active licenses should be global
+        let active = if !group.is_empty() { &group } else { &global };
+        assert_eq!(active[0], "https://rslcollective.org/royalty.xml");
+    }
+
+    #[test]
+    fn test_rsl_real_world_medium_com() {
+        // Based on medium.com's robots.txt (as of 2026-02-14)
+        // Tests group-scoped license pattern with multiple specific bots
+        let analyzer = RobotAnalyzer::new("GPTBot".to_string());
+        let content = r#"
+User-agent: *
+Allow: /about
+
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: FacebookBot
+License: https://medium.com/license.xml
+Disallow: /
+        "#;
+        let (global, group) = analyzer.extract_licenses(content);
+
+        assert_eq!(global.len(), 0, "No global licenses");
+        assert_eq!(group.len(), 1, "Should have group license");
+        assert_eq!(group[0], "https://medium.com/license.xml");
+
+        // Active licenses should be group-scoped
+        let active = if !group.is_empty() { &group } else { &global };
+        assert_eq!(active[0], "https://medium.com/license.xml");
+    }
+
+    #[test]
     fn test_tdm_pattern_exact_match() {
         assert!(RobotAnalyzer::match_tdm_pattern("/", "/"));
         assert!(RobotAnalyzer::match_tdm_pattern("/docs", "/docs"));
