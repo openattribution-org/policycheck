@@ -33,7 +33,3 @@ test_*.txt
 # Environment
 .env
 .env.local
-
-# Frontend build artifacts
-public/styles.css
-public/node_modules/
