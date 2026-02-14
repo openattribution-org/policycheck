@@ -21,21 +21,24 @@ const downloadJsonBtn = document.getElementById('download-json');
 const downloadCsvBtn = document.getElementById('download-csv');
 
 // Tab switching
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        const tabName = tab.dataset.tab;
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabName = btn.dataset.tab;
 
-        // Update tabs
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+        // Update buttons
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active', 'border-coral-600', 'text-gray-900', 'font-normal');
+            b.classList.add('border-transparent', 'text-gray-600', 'font-light');
+        });
+        btn.classList.add('active', 'border-coral-600', 'text-gray-900', 'font-normal');
+        btn.classList.remove('border-transparent', 'text-gray-600', 'font-light');
 
         // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.remove('active');
+            content.classList.add('hidden');
         });
-        document.getElementById(`${tabName}-tab`).classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.remove('hidden');
 
-        // Reset states
         hideAll();
     });
 });
@@ -51,11 +54,9 @@ analyzeBtn.addEventListener('click', async () => {
     await analyzeUrls([url]);
 });
 
-// Handle Enter key in URL input
+// Handle Enter key
 urlInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        analyzeBtn.click();
-    }
+    if (e.key === 'Enter') analyzeBtn.click();
 });
 
 // CSV Upload
@@ -63,23 +64,23 @@ csvFile.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         analyzeCsvBtn.disabled = false;
-        uploadArea.querySelector('.upload-content p').textContent = `Selected: ${file.name}`;
+        uploadArea.querySelector('p').innerHTML = `Selected: <span class="font-normal">${file.name}</span>`;
     }
 });
 
 // Drag and drop
 uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
-    uploadArea.classList.add('drag-over');
+    uploadArea.classList.add('border-coral-600', 'bg-coral-50');
 });
 
 uploadArea.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('drag-over');
+    uploadArea.classList.remove('border-coral-600', 'bg-coral-50');
 });
 
 uploadArea.addEventListener('drop', (e) => {
     e.preventDefault();
-    uploadArea.classList.remove('drag-over');
+    uploadArea.classList.remove('border-coral-600', 'bg-coral-50');
 
     const file = e.dataTransfer.files[0];
     if (file && file.name.endsWith('.csv')) {
@@ -90,9 +91,7 @@ uploadArea.addEventListener('drop', (e) => {
     }
 });
 
-uploadArea.addEventListener('click', () => {
-    csvFile.click();
-});
+uploadArea.addEventListener('click', () => csvFile.click());
 
 // CSV Analysis
 analyzeCsvBtn.addEventListener('click', async () => {
@@ -125,7 +124,6 @@ function parseCSV(text) {
     );
 
     if (urlIndex === -1) {
-        // No header found, assume first column
         return lines.slice(1)
             .map(line => line.split(',')[0].trim())
             .filter(url => url && url.length > 0);
@@ -147,13 +145,8 @@ async function analyzeUrls(urls) {
     try {
         const response = await fetch(`${API_URL}/analyze`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                urls: urls,
-                user_agent: '*'
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls, user_agent: '*' })
         });
 
         if (!response.ok) {
@@ -162,7 +155,6 @@ async function analyzeUrls(urls) {
 
         const data = await response.json();
         currentResults = data.results;
-
         displayResults(data);
     } catch (err) {
         showError(`Analysis failed: ${err.message}`);
@@ -173,62 +165,50 @@ async function analyzeUrls(urls) {
 
 // Display results
 function displayResults(data) {
-    // Show results section
     results.classList.remove('hidden');
 
-    // Update summary
     summary.innerHTML = `
         <strong>Total:</strong> ${data.total} &nbsp;|&nbsp;
-        <strong class="status-success">✓ Successful:</strong> ${data.successful} &nbsp;|&nbsp;
-        <strong class="status-error">✗ Failed:</strong> ${data.failed}
+        <strong class="text-green-700">✓ Successful:</strong> ${data.successful} &nbsp;|&nbsp;
+        <strong class="text-coral-700">✗ Failed:</strong> ${data.failed}
     `;
 
-    // Clear existing results
     resultsBody.innerHTML = '';
 
-    // Add rows
     data.results.forEach(result => {
         const row = document.createElement('tr');
+        row.className = 'border-b border-gray-100 hover:bg-gray-50';
 
-        // Status
-        const statusClass = result.status === 'success' ? 'status-success' : 'status-error';
+        const statusClass = result.status === 'success' ? 'text-green-700' : 'text-coral-700';
         const statusText = result.status === 'success' ? '✓ Success' : '✗ Error';
 
-        // Path allowed
         let pathAllowed = '-';
         if (result.status === 'success') {
             pathAllowed = result.is_path_allowed
-                ? '<span class="status-yes">✓ Yes</span>'
-                : '<span class="status-no">✗ No</span>';
+                ? '<span class="text-green-700">✓ Yes</span>'
+                : '<span class="text-coral-700">✗ No</span>';
         }
 
-        // RSL Licenses
         const rslCount = result.active_licenses?.length || 0;
         const rslText = rslCount > 0 ? `${rslCount} license(s)` : '-';
 
-        // TDM
         let tdmText = '-';
         if (result.tdm_policy) {
             tdmText = result.tdm_policy.is_reserved
-                ? '<span class="status-warning">⚠️ Yes</span>'
-                : '<span class="status-yes">✓ No</span>';
+                ? '<span class="text-amber-700">⚠️ Yes</span>'
+                : '<span class="text-green-700">✓ No</span>';
         }
 
-        // User agents
-        const userAgents = result.user_agents?.slice(0, 3).join(', ') || '-';
-        const moreAgents = result.user_agents?.length > 3 ? ` (+${result.user_agents.length - 3})` : '';
-
-        // Crawl delay
-        const crawlDelay = result.crawl_delay ? `${result.crawl_delay}s` : '-';
+        const userAgents = result.user_agents?.slice(0, 2).join(', ') || '-';
+        const moreAgents = result.user_agents?.length > 2 ? ` (+${result.user_agents.length - 2})` : '';
 
         row.innerHTML = `
-            <td class="url-cell" title="${result.url}">${result.url}</td>
-            <td class="${statusClass}">${statusText}</td>
-            <td>${pathAllowed}</td>
-            <td>${rslText}</td>
-            <td>${tdmText}</td>
-            <td>${userAgents}${moreAgents}</td>
-            <td>${crawlDelay}</td>
+            <td class="py-3 px-4 max-w-xs truncate" title="${result.url}">${result.url}</td>
+            <td class="py-3 px-4 ${statusClass}">${statusText}</td>
+            <td class="py-3 px-4">${pathAllowed}</td>
+            <td class="py-3 px-4">${rslText}</td>
+            <td class="py-3 px-4">${tdmText}</td>
+            <td class="py-3 px-4">${userAgents}${moreAgents}</td>
         `;
 
         resultsBody.appendChild(row);
@@ -238,7 +218,6 @@ function displayResults(data) {
 // Download handlers
 downloadJsonBtn.addEventListener('click', () => {
     if (!currentResults) return;
-
     const blob = new Blob([JSON.stringify(currentResults, null, 2)], { type: 'application/json' });
     downloadFile(blob, 'policycheck-results.json');
 });
@@ -246,16 +225,14 @@ downloadJsonBtn.addEventListener('click', () => {
 downloadCsvBtn.addEventListener('click', () => {
     if (!currentResults) return;
 
-    // Build CSV
-    const headers = ['URL', 'Status', 'Path Allowed', 'RSL Licenses', 'TDM Reserved', 'User Agents', 'Crawl Delay'];
+    const headers = ['URL', 'Status', 'Path Allowed', 'RSL Licenses', 'TDM Reserved', 'User Agents'];
     const rows = currentResults.map(r => [
         r.url,
         r.status,
         r.is_path_allowed ? 'Yes' : 'No',
         r.active_licenses?.length || 0,
         r.tdm_policy?.is_reserved ? 'Yes' : 'No',
-        r.user_agents?.join('; ') || '',
-        r.crawl_delay || ''
+        r.user_agents?.join('; ') || ''
     ]);
 
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n');

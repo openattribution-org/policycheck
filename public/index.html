@@ -1,102 +1,201 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PolicyCheck - Web Attribution & Compliance Scanner</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Check robots.txt, RSL licenses, and TDM policies for any domain. Part of OpenAttribution initiative.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        coral: {
+                            50: '#fff5f2',
+                            100: '#ffe8e0',
+                            200: '#ffd4c7',
+                            300: '#ffb69e',
+                            400: '#ff8c64',
+                            500: '#ff6b3d',
+                            600: '#f04e1f',
+                            700: '#cc3d15',
+                            800: '#a63516',
+                            900: '#883018',
+                        },
+                        amber: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        },
+                        cream: '#faf8f5',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
 </head>
-<body>
-    <header>
-        <div class="container">
-            <h1>🔍 PolicyCheck</h1>
-            <p class="subtitle">Web Attribution & Compliance Scanner</p>
-            <p class="description">Check robots.txt, RSL licenses, and TDM policies for any domain</p>
-        </div>
-    </header>
+<body class="font-sans antialiased bg-cream text-gray-800">
 
-    <main class="container">
-        <!-- Input Section -->
-        <div class="input-section">
-            <div class="tabs">
-                <button class="tab active" data-tab="single">Single URL</button>
-                <button class="tab" data-tab="csv">CSV Upload</button>
-            </div>
-
-            <!-- Single URL Input -->
-            <div id="single-tab" class="tab-content active">
-                <div class="input-group">
-                    <input
-                        type="text"
-                        id="url-input"
-                        placeholder="https://example.com"
-                        value="https://github.com"
-                    >
-                    <button id="analyze-btn" class="btn-primary">Analyze</button>
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-coral-100">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-2xl font-light tracking-tight">
+                    <span class="text-coral-600">Policy</span><span class="text-gray-800">Check</span>
                 </div>
-                <p class="hint">Enter a domain or URL to check its compliance policies</p>
+                <div class="flex items-center gap-6">
+                    <a href="https://openattribution.org" class="text-gray-600 hover:text-coral-600 transition font-light text-sm">
+                        Part of OpenAttribution
+                    </a>
+                    <a href="https://github.com/openattribution-org/policycheck" target="_blank" class="text-gray-600 hover:text-coral-600 transition font-light text-sm">
+                        GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-16 px-6 bg-gradient-to-br from-coral-50 via-cream to-amber-50">
+        <div class="max-w-6xl mx-auto text-center">
+            <h1 class="text-5xl lg:text-6xl font-light leading-tight mb-6">
+                <span class="text-coral-600 font-normal">Web Attribution</span> & Compliance Scanner
+            </h1>
+            <p class="text-xl text-gray-700 font-light mb-8 max-w-3xl mx-auto">
+                Check robots.txt, RSL licenses, and TDM policies for any domain. Fast, free, open source.
+            </p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="pb-20 px-6">
+        <div class="max-w-5xl mx-auto -mt-8">
+
+            <!-- Input Card -->
+            <div class="bg-white rounded-2xl shadow-lg border border-coral-100 p-8 mb-8">
+                <div class="flex gap-4 mb-6 border-b border-gray-200 pb-4">
+                    <button class="tab-btn active px-4 py-2 font-normal text-gray-900 border-b-2 border-coral-600" data-tab="single">
+                        Single URL
+                    </button>
+                    <button class="tab-btn px-4 py-2 font-light text-gray-600 border-b-2 border-transparent hover:text-coral-600" data-tab="csv">
+                        CSV Upload
+                    </button>
+                </div>
+
+                <!-- Single URL Input -->
+                <div id="single-tab" class="tab-content">
+                    <div class="flex gap-4">
+                        <input
+                            type="text"
+                            id="url-input"
+                            placeholder="https://example.com"
+                            value="https://github.com"
+                            class="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-coral-500 focus:border-transparent transition font-light"
+                        >
+                        <button id="analyze-btn" class="px-8 py-3 bg-coral-600 text-white rounded-lg hover:bg-coral-700 transition shadow-lg hover:shadow-xl font-normal">
+                            Analyze
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-600 font-light mt-2">Enter a domain or URL to check compliance policies</p>
+                </div>
+
+                <!-- CSV Upload -->
+                <div id="csv-tab" class="tab-content hidden">
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-coral-600 transition cursor-pointer" id="upload-area">
+                        <input type="file" id="csv-file" accept=".csv" class="hidden">
+                        <div class="text-4xl mb-2">📄</div>
+                        <p class="text-gray-600 font-light">Drag & drop a CSV file or <label for="csv-file" class="text-coral-600 underline cursor-pointer">browse</label></p>
+                        <p class="text-sm text-gray-500 font-light mt-2">CSV should have a "url" column</p>
+                    </div>
+                    <button id="analyze-csv-btn" class="mt-4 w-full px-8 py-3 bg-coral-600 text-white rounded-lg hover:bg-coral-700 transition shadow-lg hover:shadow-xl font-normal disabled:opacity-50" disabled>
+                        Analyze CSV
+                    </button>
+                </div>
             </div>
 
-            <!-- CSV Upload -->
-            <div id="csv-tab" class="tab-content">
-                <div class="upload-area" id="upload-area">
-                    <input type="file" id="csv-file" accept=".csv" hidden>
-                    <div class="upload-content">
-                        <span class="upload-icon">📄</span>
-                        <p>Drag & drop a CSV file or <label for="csv-file" class="upload-label">browse</label></p>
-                        <p class="hint">CSV should have a "url" column with domains to check</p>
+            <!-- Loading -->
+            <div id="loading" class="hidden text-center py-12">
+                <div class="inline-block w-12 h-12 border-4 border-coral-200 border-t-coral-600 rounded-full animate-spin"></div>
+                <p class="mt-4 text-gray-600 font-light">Analyzing...</p>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="hidden">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-normal">Results</h2>
+                        <div class="flex gap-2">
+                            <button id="download-json" class="px-4 py-2 bg-white text-coral-600 rounded-lg border border-coral-200 hover:bg-coral-50 transition font-light text-sm">
+                                Download JSON
+                            </button>
+                            <button id="download-csv" class="px-4 py-2 bg-white text-coral-600 rounded-lg border border-coral-200 hover:bg-coral-50 transition font-light text-sm">
+                                Download CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="summary" class="bg-gradient-to-r from-coral-50 to-amber-50 rounded-lg p-4 mb-6 text-sm font-light"></div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b-2 border-coral-200">
+                                    <th class="py-3 px-4 text-left font-normal text-gray-900">URL</th>
+                                    <th class="py-3 px-4 text-left font-normal text-gray-900">Status</th>
+                                    <th class="py-3 px-4 text-left font-normal text-gray-900">Path Allowed</th>
+                                    <th class="py-3 px-4 text-left font-normal text-gray-900">RSL Licenses</th>
+                                    <th class="py-3 px-4 text-left font-normal text-gray-900">TDM Reserved</th>
+                                    <th class="py-3 px-4 text-left font-normal text-gray-900">User Agents</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-body" class="text-gray-600 font-light text-sm"></tbody>
+                        </table>
                     </div>
                 </div>
-                <button id="analyze-csv-btn" class="btn-primary" disabled>Analyze CSV</button>
-            </div>
-        </div>
-
-        <!-- Loading State -->
-        <div id="loading" class="loading hidden">
-            <div class="spinner"></div>
-            <p>Analyzing...</p>
-        </div>
-
-        <!-- Results Section -->
-        <div id="results" class="results hidden">
-            <div class="results-header">
-                <h2>Results</h2>
-                <div class="results-actions">
-                    <button id="download-json" class="btn-secondary">Download JSON</button>
-                    <button id="download-csv" class="btn-secondary">Download CSV</button>
-                </div>
             </div>
 
-            <div id="summary" class="summary"></div>
-
-            <div class="table-container">
-                <table id="results-table">
-                    <thead>
-                        <tr>
-                            <th>URL</th>
-                            <th>Status</th>
-                            <th>Path Allowed</th>
-                            <th>RSL Licenses</th>
-                            <th>TDM Reserved</th>
-                            <th>User Agents</th>
-                            <th>Crawl Delay</th>
-                        </tr>
-                    </thead>
-                    <tbody id="results-body"></tbody>
-                </table>
+            <!-- Error -->
+            <div id="error" class="hidden bg-coral-50 border border-coral-200 rounded-lg p-4 text-coral-700">
+                <p id="error-message" class="font-light"></p>
             </div>
-        </div>
 
-        <!-- Error State -->
-        <div id="error" class="error hidden">
-            <p id="error-message"></p>
         </div>
     </main>
 
-    <footer>
-        <div class="container">
-            <p>Part of <a href="https://openattribution.org" target="_blank">OpenAttribution</a> initiative</p>
-            <p><a href="https://github.com/openattribution-org/policycheck" target="_blank">GitHub</a> • <a href="https://github.com/openattribution-org/policycheck#readme" target="_blank">Documentation</a></p>
+    <!-- Footer -->
+    <footer class="py-12 px-6 bg-gray-900 text-gray-400">
+        <div class="max-w-7xl mx-auto text-center">
+            <p class="text-xl font-light mb-4">
+                <span class="text-coral-500">Policy</span>Check
+            </p>
+            <p class="font-light text-sm mb-4">
+                Part of <a href="https://openattribution.org" class="text-coral-500 hover:underline">OpenAttribution</a> initiative
+            </p>
+            <div class="flex justify-center gap-6 text-sm font-light">
+                <a href="https://github.com/openattribution-org/policycheck" class="hover:text-coral-500 transition">GitHub</a>
+                <a href="https://github.com/openattribution-org/policycheck#readme" class="hover:text-coral-500 transition">Documentation</a>
+                <a href="https://openattribution.org" class="hover:text-coral-500 transition">OpenAttribution</a>
+            </div>
         </div>
     </footer>
 
