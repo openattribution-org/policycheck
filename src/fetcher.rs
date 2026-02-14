@@ -2,6 +2,8 @@ use anyhow::{Context, Result};
 use std::time::Duration;
 use url::Url;
 
+use crate::models::TdmRule;
+
 pub struct RobotFetcher {
     client: reqwest::Client,
 }
@@ -66,6 +68,50 @@ impl RobotFetcher {
         let robots_url = Self::get_robots_url(base_url)?;
         let content = self.fetch(&robots_url).await?;
         Ok((robots_url, content))
+    }
+
+    /// Get the TDM policy URL for a given base URL
+    pub fn get_tdm_url(base_url: &str) -> Result<String> {
+        let parsed = Url::parse(base_url).context("Invalid URL")?;
+
+        let tdm_url = format!(
+            "{}://{}/.well-known/tdmrep.json",
+            parsed.scheme(),
+            parsed.host_str().context("URL has no host")?
+        );
+
+        Ok(tdm_url)
+    }
+
+    /// Fetch and parse TDM policy from /.well-known/tdmrep.json
+    pub async fn fetch_tdm_policy(&self, base_url: &str) -> Result<Vec<TdmRule>> {
+        let tdm_url = Self::get_tdm_url(base_url)?;
+
+        let response = self
+            .client
+            .get(&tdm_url)
+            .send()
+            .await
+            .context("Failed to send TDM request")?;
+
+        if !response.status().is_success() {
+            anyhow::bail!(
+                "TDM HTTP {} - {}",
+                response.status(),
+                response.status().canonical_reason().unwrap_or("Unknown")
+            );
+        }
+
+        let content = response
+            .text()
+            .await
+            .context("Failed to read TDM response body")?;
+
+        // Parse JSON array of TDM rules
+        let rules: Vec<TdmRule> = serde_json::from_str(&content)
+            .context("Failed to parse tdmrep.json")?;
+
+        Ok(rules)
     }
 }
 

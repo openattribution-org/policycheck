@@ -14,6 +14,7 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             "Crawl Delay",
             "Path Allowed",
             "RSL Licenses",
+            "TDM Reserved",
             "Sitemaps",
             "Disallowed",
         ]);
@@ -65,6 +66,16 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             result.active_licenses.len().to_string()
         };
 
+        let tdm_str = if let Some(ref tdm) = result.tdm_policy {
+            if tdm.is_reserved {
+                "⚠️  Yes"
+            } else {
+                "✓ No"
+            }
+        } else {
+            "-"
+        };
+
         table.add_row(vec![
             Cell::new(&result.url),
             Cell::new(status_str),
@@ -72,6 +83,7 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             Cell::new(crawl_delay_str),
             Cell::new(allowed_str),
             Cell::new(licenses_str),
+            Cell::new(tdm_str),
             Cell::new(sitemaps_str),
             Cell::new(disallowed_str),
         ]);
@@ -163,6 +175,25 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
                     for license in &result.group_licenses {
                         output.push_str(&format!("  📜 {}\n", license));
                     }
+                    output.push('\n');
+                }
+
+                if let Some(ref tdm) = result.tdm_policy {
+                    output.push_str("TDM Policy:\n");
+                    output.push_str(&format!(
+                        "  {} TDM Reservation: {}\n",
+                        if tdm.is_reserved { "⚠️ " } else { "✓" },
+                        if tdm.is_reserved { "YES (reserved)" } else { "NO (unreserved)" }
+                    ));
+
+                    if let Some(ref matched) = tdm.matched_rule {
+                        output.push_str(&format!("  🎯 Matched Rule: {}\n", matched.location));
+                        if let Some(ref policy_url) = matched.tdm_policy {
+                            output.push_str(&format!("  📄 Policy: {}\n", policy_url));
+                        }
+                    }
+
+                    output.push_str(&format!("  📋 Total Rules: {}\n", tdm.rules.len()));
                 }
             }
             _ => {

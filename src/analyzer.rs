@@ -1,8 +1,9 @@
 use crate::fetcher::RobotFetcher;
-use crate::models::{AnalysisResult, AnalysisStatus};
+use crate::models::{AnalysisResult, AnalysisStatus, TdmPolicy, TdmRule};
 use anyhow::Result;
 use std::path::Path;
 use texting_robots::Robot;
+use url::Url;
 
 pub struct RobotAnalyzer {
     user_agent: String,
@@ -105,6 +106,12 @@ impl RobotAnalyzer {
         // Check if the original URL path is allowed
         let is_path_allowed = robot.allowed(url);
 
+        // Fetch and evaluate TDM policy
+        let tdm_policy = match self.fetcher.fetch_tdm_policy(url).await {
+            Ok(rules) => self.evaluate_tdm_policy(url, rules).await,
+            Err(_) => None, // TDM policy is optional, ignore errors
+        };
+
         AnalysisResult {
             url: url.to_string(),
             robots_url,
@@ -118,6 +125,7 @@ impl RobotAnalyzer {
             global_licenses,
             group_licenses,
             active_licenses,
+            tdm_policy,
             error: None,
         }
     }
@@ -269,6 +277,79 @@ impl RobotAnalyzer {
 
         (global_licenses, group_licenses)
     }
+
+    /// Match a path against a TDM location pattern
+    /// Supports * wildcard and $ end-of-pattern marker
+    fn match_tdm_pattern(pattern: &str, path: &str) -> bool {
+        // Remove $ end marker if present for processing
+        let (pattern, must_end) = if pattern.ends_with('$') {
+            (&pattern[..pattern.len() - 1], true)
+        } else {
+            (pattern, false)
+        };
+
+        // Simple wildcard matching
+        let parts: Vec<&str> = pattern.split('*').collect();
+
+        if parts.len() == 1 {
+            // No wildcards - exact match (or prefix if no $)
+            if must_end {
+                return path == pattern;
+            } else {
+                return path.starts_with(pattern);
+            }
+        }
+
+        // Check if path matches the pattern with wildcards
+        let mut path_pos = 0;
+        for (i, part) in parts.iter().enumerate() {
+            if part.is_empty() {
+                continue;
+            }
+
+            if i == 0 {
+                // First part must match from the start
+                if !path[path_pos..].starts_with(part) {
+                    return false;
+                }
+                path_pos += part.len();
+            } else {
+                // Find the next occurrence
+                if let Some(pos) = path[path_pos..].find(part) {
+                    path_pos += pos + part.len();
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        // If must_end is true, ensure we've consumed the entire path
+        !must_end || path_pos == path.len()
+    }
+
+    /// Evaluate TDM rules and find the matching rule for a URL
+    async fn evaluate_tdm_policy(&self, url: &str, rules: Vec<TdmRule>) -> Option<TdmPolicy> {
+        // Parse URL to get the path
+        let parsed = Url::parse(url).ok()?;
+        let path = parsed.path();
+
+        // Find the first matching rule (most specific wins)
+        let matched_rule = rules
+            .iter()
+            .find(|rule| Self::match_tdm_pattern(&rule.location, path))
+            .cloned();
+
+        let is_reserved = matched_rule
+            .as_ref()
+            .map(|r| r.tdm_reservation == 1)
+            .unwrap_or(false);
+
+        Some(TdmPolicy {
+            rules,
+            matched_rule,
+            is_reserved,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -380,5 +461,82 @@ License: https://example.com/wildcard.xml
         // Wildcard should match any user agent
         assert_eq!(group.len(), 1);
         assert_eq!(group[0], "https://example.com/wildcard.xml");
+    }
+
+    #[test]
+    fn test_tdm_pattern_exact_match() {
+        assert!(RobotAnalyzer::match_tdm_pattern("/", "/"));
+        assert!(RobotAnalyzer::match_tdm_pattern("/docs", "/docs"));
+        assert!(RobotAnalyzer::match_tdm_pattern("/docs", "/docs/page"));
+        assert!(!RobotAnalyzer::match_tdm_pattern("/docs$", "/docs/page"));
+    }
+
+    #[test]
+    fn test_tdm_pattern_wildcard() {
+        assert!(RobotAnalyzer::match_tdm_pattern("/docs/*", "/docs/page"));
+        assert!(RobotAnalyzer::match_tdm_pattern("/docs/*", "/docs/page/sub"));
+        assert!(RobotAnalyzer::match_tdm_pattern("*.pdf", "/file.pdf"));
+        assert!(RobotAnalyzer::match_tdm_pattern("*.pdf", "/docs/file.pdf"));
+        assert!(!RobotAnalyzer::match_tdm_pattern("/docs/*", "/other/page"));
+    }
+
+    #[test]
+    fn test_tdm_pattern_end_marker() {
+        assert!(RobotAnalyzer::match_tdm_pattern("/docs$", "/docs"));
+        assert!(!RobotAnalyzer::match_tdm_pattern("/docs$", "/docs/"));
+        assert!(!RobotAnalyzer::match_tdm_pattern("/docs$", "/docs/page"));
+        assert!(RobotAnalyzer::match_tdm_pattern("/docs/page$", "/docs/page"));
+    }
+
+    #[test]
+    fn test_tdm_pattern_complex() {
+        assert!(RobotAnalyzer::match_tdm_pattern("/*/public/*", "/docs/public/file"));
+        assert!(RobotAnalyzer::match_tdm_pattern("/docs/*.pdf$", "/docs/file.pdf"));
+        assert!(!RobotAnalyzer::match_tdm_pattern("/docs/*.pdf$", "/docs/file.pdf.bak"));
+    }
+
+    #[tokio::test]
+    async fn test_tdm_rule_matching() {
+        let analyzer = RobotAnalyzer::new("*".to_string());
+
+        let rules = vec![
+            TdmRule {
+                location: "/".to_string(),
+                tdm_reservation: 1,
+                tdm_policy: Some("https://example.com/policy.html".to_string()),
+            },
+            TdmRule {
+                location: "/public/*".to_string(),
+                tdm_reservation: 0,
+                tdm_policy: None,
+            },
+        ];
+
+        // Test root path matches first rule
+        let policy = analyzer.evaluate_tdm_policy("https://example.com/", rules.clone()).await;
+        assert!(policy.is_some());
+        let policy = policy.unwrap();
+        assert!(policy.is_reserved);
+        assert_eq!(policy.matched_rule.as_ref().unwrap().location, "/");
+
+        // Test public path matches second rule
+        let rules2 = vec![
+            TdmRule {
+                location: "/public/*".to_string(),
+                tdm_reservation: 0,
+                tdm_policy: None,
+            },
+            TdmRule {
+                location: "/".to_string(),
+                tdm_reservation: 1,
+                tdm_policy: Some("https://example.com/policy.html".to_string()),
+            },
+        ];
+
+        let policy2 = analyzer.evaluate_tdm_policy("https://example.com/public/data", rules2).await;
+        assert!(policy2.is_some());
+        let policy2 = policy2.unwrap();
+        assert!(!policy2.is_reserved);
+        assert_eq!(policy2.matched_rule.as_ref().unwrap().location, "/public/*");
     }
 }

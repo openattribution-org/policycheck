@@ -17,30 +17,29 @@ Expanding robotxt to check relevant `.well-known` URIs that provide licensing an
 
 **Example tdmrep.json:**
 ```json
-{
-  "tdm": {
-    "policy": "http://example.com/tdm-policy.html",
-    "reservation": true,
-    "permissions": [
-      {
-        "purpose": "research",
-        "allowed": true
-      },
-      {
-        "purpose": "commercial",
-        "allowed": false,
-        "license_required": true,
-        "contact": "licensing@example.com"
-      }
-    ]
+[
+  {
+    "location": "/",
+    "tdm-reservation": 1,
+    "tdm-policy": "https://example.com/tdm-policy.html"
+  },
+  {
+    "location": "/public/*",
+    "tdm-reservation": 0
   }
-}
+]
 ```
 
+**Format:** Array of rules (W3C TDMRep Final Spec 2024-05-10)
+- `location` (required): Path pattern with `*` wildcard, `$` end marker
+- `tdm-reservation` (required): `1` = reserved (restricted), `0` = unreserved (allowed)
+- `tdm-policy` (optional): URL to human-readable policy document
+
+**Matching:** Case-sensitive, most specific match wins (first in array), follows robots.txt pattern conventions
+
 **Integration:**
-- Add `tdm_policy: Option<String>` to AnalysisResult
-- Add `tdm_reservation: Option<bool>` (true = TDM is restricted)
-- Add `tdm_permissions: Vec<TdmPermission>` with purpose/allowed/license info
+- Add `tdm_policy: Option<TdmPolicy>` to AnalysisResult
+- `TdmPolicy` contains matched rule with reservation status and policy URL
 
 ---
 
@@ -96,19 +95,19 @@ Policy: https://example.com/security-policy
 ### Phase 1: TDM Support (Highest Value)
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TdmPermission {
-    pub purpose: String,           // "research", "commercial", "ai-training"
-    pub allowed: bool,
-    pub license_required: bool,
-    pub license_url: Option<String>,
-    pub contact: Option<String>,
+pub struct TdmRule {
+    pub location: String,            // Path pattern (e.g., "/", "/docs/*")
+    #[serde(rename = "tdm-reservation")]
+    pub tdm_reservation: u8,         // 0 = unreserved, 1 = reserved
+    #[serde(rename = "tdm-policy")]
+    pub tdm_policy: Option<String>,  // Optional policy URL
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TdmPolicy {
-    pub policy_url: Option<String>,
-    pub reservation: bool,          // true = TDM is restricted
-    pub permissions: Vec<TdmPermission>,
+    pub rules: Vec<TdmRule>,         // All rules from tdmrep.json
+    pub matched_rule: Option<TdmRule>, // Rule that matched the requested path
+    pub is_reserved: bool,           // Evaluated: true = TDM restricted
 }
 
 // Add to AnalysisResult
@@ -148,12 +147,9 @@ RSL Licenses (Active):
   📜 https://example.com/license.xml
 
 TDM Policy:
-  ⚠️  TDM Reservation: YES (restricted)
+  ⚠️  TDM Reservation: YES (reserved for this path)
   📄 Policy: https://example.com/tdm-policy.html
-  Permissions:
-    ✓ Research: Allowed
-    ✗ Commercial: Requires license (contact: licensing@example.com)
-    ✗ AI Training: Not allowed
+  🎯 Matched Rule: "/" (tdm-reservation: 1)
 
 Security:
   📧 Contact: security@example.com
@@ -189,19 +185,17 @@ robotxt analyze --url https://example.com --check-tdm --check-security
   "robots_url": "https://example.com/robots.txt",
   "active_licenses": ["https://example.com/license.xml"],
   "tdm_policy": {
-    "policy_url": "https://example.com/tdm-policy.html",
-    "reservation": true,
-    "permissions": [
+    "is_reserved": true,
+    "matched_rule": {
+      "location": "/",
+      "tdm-reservation": 1,
+      "tdm-policy": "https://example.com/tdm-policy.html"
+    },
+    "rules": [
       {
-        "purpose": "research",
-        "allowed": true,
-        "license_required": false
-      },
-      {
-        "purpose": "commercial",
-        "allowed": false,
-        "license_required": true,
-        "contact": "licensing@example.com"
+        "location": "/",
+        "tdm-reservation": 1,
+        "tdm-policy": "https://example.com/tdm-policy.html"
       }
     ]
   },
