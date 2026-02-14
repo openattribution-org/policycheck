@@ -1,5 +1,6 @@
+use crate::ai_crawlers::{AICrawler, BotStatus};
 use crate::fetcher::RobotFetcher;
-use crate::models::{AnalysisResult, AnalysisStatus, TdmPolicy, TdmRule};
+use crate::models::{AnalysisResult, AnalysisStatus, BotAnalysisResult, TdmPolicy, TdmRule};
 use anyhow::Result;
 use std::path::Path;
 use texting_robots::Robot;
@@ -112,6 +113,9 @@ impl RobotAnalyzer {
             Err(_) => None, // TDM policy is optional, ignore errors
         };
 
+        // Analyze AI bot access
+        let ai_bot_analysis = self.analyze_ai_bots(&content, url);
+
         AnalysisResult {
             url: url.to_string(),
             robots_url,
@@ -126,6 +130,7 @@ impl RobotAnalyzer {
             group_licenses,
             active_licenses,
             tdm_policy,
+            ai_bot_analysis,
             error: None,
         }
     }
@@ -349,6 +354,55 @@ impl RobotAnalyzer {
             matched_rule,
             is_reserved,
         })
+    }
+
+    /// Analyze each AI bot individually to determine its access status
+    fn analyze_ai_bots(&self, content: &str, url: &str) -> Vec<BotAnalysisResult> {
+        let all_bots = AICrawler::get_all();
+        let mut results = Vec::new();
+
+        // Normalize user agents for comparison (case-insensitive)
+        let user_agents_lower: Vec<String> = self
+            .extract_user_agents(content)
+            .iter()
+            .map(|ua| ua.to_lowercase())
+            .collect();
+
+        for bot in all_bots {
+            let bot_name_lower = bot.name.to_lowercase();
+
+            // Check if this bot is mentioned in robots.txt
+            let is_mentioned = user_agents_lower
+                .iter()
+                .any(|ua| ua == &bot_name_lower || ua.contains(&bot_name_lower));
+
+            let status = if is_mentioned {
+                // Bot is mentioned - check if it's allowed or blocked for this path
+                // Create a Robot instance specifically for this bot
+                match Robot::new(&bot.name, content.as_bytes()) {
+                    Ok(robot) => {
+                        if robot.allowed(url) {
+                            BotStatus::Allowed
+                        } else {
+                            BotStatus::Blocked
+                        }
+                    }
+                    Err(_) => BotStatus::Allowed, // Parse error, default to allowed
+                }
+            } else {
+                // Bot not mentioned - allowed by default (follows wildcard rules or no restrictions)
+                BotStatus::Allowed
+            };
+
+            results.push(BotAnalysisResult {
+                bot_name: bot.name,
+                company: bot.company,
+                category: format!("{:?}", bot.category),
+                status,
+            });
+        }
+
+        results
     }
 }
 

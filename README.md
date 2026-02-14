@@ -20,13 +20,15 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 
 ## Features
 
+- 🤖 **AI Bot Analysis** - Check 26 known AI crawlers (GPTBot, ClaudeBot, CCBot, etc.)
+- 📊 **CSV Export** - Major AI bots as columns for advertiser analysis
 - 🚀 **Fast** - Built with Rust, battle-tested parser (34M+ robots.txt files)
 - 📦 **Portable** - Single binary, no dependencies
 - 🔍 **Comprehensive** - User agents, crawl delays, sitemaps, paths, licenses
 - 📜 **RSL License Detection** - Automatically finds Responsible Sourcing Licenses
-- 📊 **Multiple Formats** - Table, JSON, or compact text output
+- 📈 **Multiple Formats** - Table, JSON, CSV, or compact text output
 - 🌐 **HTTP API** - Run as a service for integration
-- 📝 **CSV Batch Processing** - Analyze thousands of URLs
+- 📝 **CSV Batch Processing** - Analyze thousands of URLs concurrently
 - ⚡ **Concurrent** - Parallel URL analysis
 
 ## Quick Start
@@ -55,26 +57,66 @@ cargo install --path .
 
 ```bash
 # Analyze a single URL
-policycheck analyze --url https://example.com
+policycheck analyze --url https://www.nytimes.com
 
 # Check multiple URLs
 policycheck analyze \
+  --url https://www.nytimes.com \
   --url https://github.com \
-  --url https://openai.com \
-  --url https://anthropic.com
+  --url https://techcrunch.com
 
-# Analyze from CSV file
-policycheck analyze --csv urls.csv
+# Analyze from CSV file (advertiser use case)
+policycheck analyze --csv publishers.csv --format csv --output results.csv
 
 # Check for specific user agent
-policycheck analyze --url https://example.com --user-agent GPTBot
+policycheck analyze --url https://www.nytimes.com --user-agent GPTBot
 
 # Output as JSON
-policycheck analyze --url https://example.com --format json
+policycheck analyze --url https://www.nytimes.com --format json
+
+# Output as CSV with AI bot columns
+policycheck analyze --url https://www.nytimes.com --format csv
 
 # Save to file
-policycheck analyze --url https://example.com --output results.json
+policycheck analyze --url https://www.nytimes.com --output results.json
 ```
+
+## AI Bot Analysis
+
+PolicyCheck analyzes **26 known AI crawlers** including GPTBot, ClaudeBot, CCBot, and more. Perfect for two key use cases:
+
+### Publisher Use Case: Protecting Content
+
+Check which AI training bots can access your content:
+
+```bash
+policycheck analyze --url https://www.nytimes.com --format compact
+```
+
+Shows comprehensive breakdown of which bots are blocked vs allowed.
+
+### Advertiser Use Case: Evaluating Publisher Partnerships
+
+Analyze multiple publishers to see which ones block AI search engines (affecting brand visibility):
+
+```bash
+policycheck analyze --csv publishers.csv --format csv --output analysis.csv
+```
+
+**Example output:**
+```csv
+URL,Status,Path Allowed,RSL Licenses,TDM Reserved,GPTBot,ClaudeBot,Google-Extended,Meta-ExternalAgent,CCBot,Bytespider,OAI-SearchBot,PerplexityBot
+https://www.nytimes.com,Success,Yes,0,N/A,Blocked,Blocked,Blocked,Blocked,Blocked,Blocked,Blocked,Blocked
+https://github.com,Success,Yes,0,N/A,Allowed,Allowed,Allowed,Allowed,Allowed,Allowed,Allowed,Allowed
+https://techcrunch.com,Success,Yes,0,N/A,Blocked,Blocked,Blocked,Allowed,Blocked,Blocked,Allowed,Allowed
+```
+
+**Key insights:**
+- **NYTimes**: Blocks all AI bots (zero AI search visibility)
+- **GitHub**: Allows all AI bots (maximum AI discoverability)
+- **TechCrunch**: Selectively blocks training bots, allows some search bots
+
+Perfect for advertisers evaluating whether publisher placements will appear in ChatGPT, Perplexity, Claude, etc.
 
 ## RSL (Responsible Sourcing License) Support
 
@@ -92,7 +134,7 @@ RSL introduces a `License:` directive that can be:
 
 ```
 # Global license (applies to all bots unless overridden)
-License: https://example.com/global-license.xml
+License: https://acme.com/global-license.xml
 
 User-agent: *
 Disallow: /private/
@@ -100,12 +142,18 @@ Allow: /public/
 
 User-agent: GPTBot
 Disallow: /
-License: https://example.com/gptbot-specific-license.xml
+License: https://acme.com/gptbot-specific-license.xml
 ```
 
 In this example:
 - Most bots will see the global license
 - GPTBot will see only the group-scoped license (global is ignored)
+
+**Real-world example:** NYTimes blocks AI bots comprehensively:
+```bash
+policycheck analyze --url https://www.nytimes.com --user-agent GPTBot
+# Shows: Blocked, with legal notice about prohibited uses
+```
 
 ### RSL in Output
 
@@ -118,36 +166,46 @@ PolicyCheck reports three license fields:
 **Compact output example:**
 ```
 ================================================================================
-URL: https://example.com
-Robots.txt: https://example.com/robots.txt
+URL: https://www.nytimes.com
+Robots.txt: https://www.nytimes.com/robots.txt
 Status: ✓ Success
 
 User Agents:
   • *
   • GPTBot
+  • ClaudeBot
+  • (40+ more...)
 
-Path Access: ✓ Allowed
+Path Access (for GPTBot): ✗ Disallowed
 
-RSL Licenses (Active):
-  📜 https://example.com/gptbot-specific-license.xml
+AI Bot Analysis:
+  🚫 GPTBot: Blocked
+  🚫 ClaudeBot: Blocked
+  🚫 CCBot: Blocked
+  ✓ Googlebot: Allowed (with restrictions)
 
 Sitemaps:
-  • https://example.com/sitemap.xml
+  • https://www.nytimes.com/sitemaps/new/news.xml.gz
+  • (15+ more sitemaps)
 ================================================================================
 ```
 
 **JSON output example:**
 ```json
 {
-  "url": "https://example.com",
-  "robots_url": "https://example.com/robots.txt",
+  "url": "https://github.com",
+  "robots_url": "https://github.com/robots.txt",
   "status": "success",
-  "user_agents": ["*", "GPTBot"],
-  "global_licenses": ["https://example.com/global-license.xml"],
-  "group_licenses": ["https://example.com/gptbot-specific-license.xml"],
-  "active_licenses": ["https://example.com/gptbot-specific-license.xml"],
+  "user_agents": ["*"],
+  "ai_bot_analysis": [
+    {"bot_name": "GPTBot", "company": "OpenAI", "category": "Training", "status": "allowed"},
+    {"bot_name": "ClaudeBot", "company": "Anthropic", "category": "Training", "status": "allowed"}
+  ],
+  "global_licenses": [],
+  "group_licenses": [],
+  "active_licenses": [],
   "crawl_delay": null,
-  "sitemaps": ["https://example.com/sitemap.xml"],
+  "sitemaps": ["https://github.com/sitemap.xml"],
   "is_path_allowed": true
 }
 ```
@@ -156,41 +214,51 @@ For more information about RSL, see the [RSL Standard](https://rslstandard.org/r
 
 ## Output Formats
 
+### CSV Format (Best for Advertisers)
+
+**Perfect for bulk analysis with AI bot columns:**
+
+```bash
+policycheck analyze --csv publishers.csv --format csv --output analysis.csv
+```
+
+Creates a spreadsheet with major AI bots as columns - ideal for Excel/Google Sheets analysis:
+
+```csv
+URL,Status,Path Allowed,RSL Licenses,TDM Reserved,GPTBot,ClaudeBot,Google-Extended,Meta-ExternalAgent,CCBot,Bytespider,OAI-SearchBot,PerplexityBot
+https://www.nytimes.com,Success,Yes,0,N/A,Blocked,Blocked,Blocked,Blocked,Blocked,Blocked,Blocked,Blocked
+https://github.com,Success,Yes,0,N/A,Allowed,Allowed,Allowed,Allowed,Allowed,Allowed,Allowed,Allowed
+```
+
 ### Table Format (Default)
 
-Perfect for quick checks across multiple sites:
+Perfect for quick checks:
 
 ```bash
 policycheck analyze --url https://github.com --format table
 ```
 
-```
-╭──────────────────┬──────────┬─────────────┬─────────────┬──────────────┬──────────────┬──────────┬────────────╮
-│ URL              │ Status   │ User Agents │ Crawl Delay │ Path Allowed │ RSL Licenses │ Sitemaps │ Disallowed │
-├──────────────────┼──────────┼─────────────┼─────────────┼──────────────┼──────────────┼──────────┼────────────┤
-│ https://github.… │ ✓ Success│ *, GoogleBot│ -           │ ✓ Yes        │ 2            │ 1        │ 45         │
-╰──────────────────┴──────────┴─────────────┴─────────────┴──────────────┴──────────────┴──────────┴────────────╯
-```
+Shows summary information in a clean ASCII table.
 
 ### Compact Format
 
-Detailed, human-readable output:
+Detailed, human-readable output with full AI bot breakdown:
 
 ```bash
-policycheck analyze --url https://example.com --format compact
+policycheck analyze --url https://www.nytimes.com --format compact
 ```
 
-Shows all details including full paths, sitemaps, and license URLs.
+Shows all details including blocked/allowed AI bots, paths, sitemaps, and licenses.
 
 ### JSON Format
 
 For programmatic use:
 
 ```bash
-policycheck analyze --url https://example.com --format json > results.json
+policycheck analyze --url https://www.nytimes.com --format json > results.json
 ```
 
-Perfect for integration with other tools.
+Includes `ai_bot_analysis` array with per-bot status - perfect for integration with other tools.
 
 ## Running as a Service
 
@@ -222,8 +290,8 @@ Analyze robots.txt and RSL licenses for given URLs.
 **Request:**
 ```json
 {
-  "urls": ["https://example.com", "https://github.com"],
-  "user_agent": "MyBot/1.0"
+  "urls": ["https://www.nytimes.com", "https://github.com"],
+  "user_agent": "GPTBot"
 }
 ```
 
@@ -235,18 +303,22 @@ Analyze robots.txt and RSL licenses for given URLs.
   "failed": 0,
   "results": [
     {
-      "url": "https://example.com",
-      "robots_url": "https://example.com/robots.txt",
+      "url": "https://www.nytimes.com",
+      "robots_url": "https://www.nytimes.com/robots.txt",
       "status": "success",
-      "user_agents": ["*", "Googlebot"],
-      "crawl_delay": 1.0,
-      "sitemaps": ["https://example.com/sitemap.xml"],
-      "allowed_paths": ["/public"],
-      "disallowed_paths": ["/private"],
-      "is_path_allowed": true,
-      "global_licenses": ["https://example.com/license.xml"],
+      "user_agents": ["*", "GPTBot", "ClaudeBot", "..."],
+      "crawl_delay": null,
+      "sitemaps": ["https://www.nytimes.com/sitemaps/new/news.xml.gz"],
+      "allowed_paths": [],
+      "disallowed_paths": ["/"],
+      "is_path_allowed": false,
+      "global_licenses": [],
       "group_licenses": [],
-      "active_licenses": ["https://example.com/license.xml"],
+      "active_licenses": [],
+      "ai_bot_analysis": [
+        {"bot_name": "GPTBot", "company": "OpenAI", "category": "Training", "status": "blocked"},
+        {"bot_name": "ClaudeBot", "company": "Anthropic", "category": "Training", "status": "blocked"}
+      ],
       "error": null
     }
   ]
@@ -259,8 +331,8 @@ Analyze robots.txt and RSL licenses for given URLs.
 curl -X POST http://localhost:3000/analyze \
   -H "Content-Type: application/json" \
   -d '{
-    "urls": ["https://example.com"],
-    "user_agent": "MyBot"
+    "urls": ["https://www.nytimes.com"],
+    "user_agent": "GPTBot"
   }'
 ```
 
@@ -306,20 +378,30 @@ PolicyCheck will automatically:
 ```python
 import requests
 
-def check_compliance(urls, user_agent="MyBot/1.0"):
+def check_ai_bot_access(urls, user_agent="GPTBot"):
     response = requests.post(
         "http://localhost:3000/analyze",
         json={"urls": urls, "user_agent": user_agent}
     )
     return response.json()
 
-# Usage
-result = check_compliance(["https://example.com"])
+# Advertiser use case: check which publishers block AI bots
+publishers = [
+    "https://www.nytimes.com",
+    "https://github.com",
+    "https://techcrunch.com"
+]
+
+result = check_ai_bot_access(publishers)
 for site in result['results']:
     print(f"\n{site['url']}")
-    print(f"  Allowed: {site['is_path_allowed']}")
-    if site['active_licenses']:
-        print(f"  Licenses: {', '.join(site['active_licenses'])}")
+    print(f"  GPTBot access: {'❌ Blocked' if not site['is_path_allowed'] else '✅ Allowed'}")
+
+    # Check specific AI bots
+    for bot in site['ai_bot_analysis']:
+        if bot['bot_name'] in ['GPTBot', 'OAI-SearchBot', 'PerplexityBot']:
+            status = '❌' if bot['status'] == 'blocked' else '✅'
+            print(f"  {status} {bot['bot_name']}")
 ```
 
 ### Node.js
@@ -327,7 +409,7 @@ for site in result['results']:
 ```javascript
 const axios = require('axios');
 
-async function checkCompliance(urls, userAgent = 'MyBot/1.0') {
+async function checkAIBotAccess(urls, userAgent = 'GPTBot') {
   const response = await axios.post('http://localhost:3000/analyze', {
     urls,
     user_agent: userAgent
@@ -335,9 +417,21 @@ async function checkCompliance(urls, userAgent = 'MyBot/1.0') {
   return response.data;
 }
 
-// Usage
-const result = await checkCompliance(['https://example.com']);
-console.log(`Checked ${result.total} URLs, ${result.successful} successful`);
+// Advertiser use case: analyze publisher AI visibility
+const publishers = [
+  'https://www.nytimes.com',
+  'https://github.com',
+  'https://techcrunch.com'
+];
+
+const result = await checkAIBotAccess(publishers);
+console.log(`Analyzed ${result.total} publishers`);
+
+result.results.forEach(site => {
+  const blocked = site.ai_bot_analysis.filter(b => b.status === 'blocked').length;
+  const allowed = site.ai_bot_analysis.filter(b => b.status === 'allowed').length;
+  console.log(`${site.url}: ${blocked} blocked, ${allowed} allowed`);
+});
 ```
 
 ### Go

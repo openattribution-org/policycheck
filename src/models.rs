@@ -1,3 +1,4 @@
+use crate::ai_crawlers::BotStatus;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,6 +18,14 @@ pub struct TdmPolicy {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BotAnalysisResult {
+    pub bot_name: String,
+    pub company: String,
+    pub category: String,
+    pub status: BotStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalysisResult {
     pub url: String,
     pub robots_url: String,
@@ -31,6 +40,7 @@ pub struct AnalysisResult {
     pub group_licenses: Vec<String>,
     pub active_licenses: Vec<String>,
     pub tdm_policy: Option<TdmPolicy>,
+    pub ai_bot_analysis: Vec<BotAnalysisResult>,
     pub error: Option<String>,
 }
 
@@ -59,6 +69,7 @@ impl AnalysisResult {
             group_licenses: vec![],
             active_licenses: vec![],
             tdm_policy: None,
+            ai_bot_analysis: vec![],
             error: Some(error),
         }
     }

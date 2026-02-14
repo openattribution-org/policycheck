@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+mod ai_crawlers;
 mod analyzer;
 mod fetcher;
 mod models;
@@ -35,7 +36,7 @@ enum Commands {
         #[arg(short = 'a', long, default_value = "*")]
         user_agent: String,
 
-        /// Output format: table, json, or compact
+        /// Output format: table, json, csv, or compact
         #[arg(short, long, default_value = "table")]
         format: String,
 
@@ -91,6 +92,7 @@ async fn main() -> Result<()> {
             let output_str = match format.as_str() {
                 "json" => output::format_json(&results)?,
                 "compact" => output::format_compact(&results)?,
+                "csv" => output::format_csv(&results)?,
                 _ => output::format_table(&results)?,
             };
 

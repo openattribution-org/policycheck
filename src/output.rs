@@ -1,3 +1,4 @@
+use crate::ai_crawlers::{AICrawler, BotStatus};
 use crate::models::{AnalysisResult, AnalysisStatus};
 use anyhow::Result;
 use comfy_table::{modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, *};
@@ -10,13 +11,10 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
         .set_header(vec![
             "URL",
             "Status",
-            "User Agents",
-            "Crawl Delay",
             "Path Allowed",
             "RSL Licenses",
             "TDM Reserved",
-            "Sitemaps",
-            "Disallowed",
+            "AI Bots Summary",
         ]);
 
     for result in results {
@@ -27,17 +25,6 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             AnalysisStatus::InvalidUrl => "✗ Invalid URL",
         };
 
-        let user_agents_str = if result.user_agents.is_empty() {
-            "-".to_string()
-        } else {
-            result.user_agents.join(", ")
-        };
-
-        let crawl_delay_str = result
-            .crawl_delay
-            .map(|d| format!("{}s", d))
-            .unwrap_or_else(|| "-".to_string());
-
         let allowed_str = if matches!(result.status, AnalysisStatus::Success) {
             if result.is_path_allowed {
                 "✓ Yes"
@@ -46,18 +33,6 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             }
         } else {
             "-"
-        };
-
-        let sitemaps_str = if result.sitemaps.is_empty() {
-            "-".to_string()
-        } else {
-            result.sitemaps.len().to_string()
-        };
-
-        let disallowed_str = if result.disallowed_paths.is_empty() {
-            "-".to_string()
-        } else {
-            result.disallowed_paths.len().to_string()
         };
 
         let licenses_str = if result.active_licenses.is_empty() {
@@ -76,16 +51,31 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             "-"
         };
 
+        // AI bot summary
+        let blocked_count = result
+            .ai_bot_analysis
+            .iter()
+            .filter(|b| matches!(b.status, BotStatus::Blocked))
+            .count();
+        let allowed_count = result
+            .ai_bot_analysis
+            .iter()
+            .filter(|b| matches!(b.status, BotStatus::Allowed))
+            .count();
+
+        let ai_summary = if result.ai_bot_analysis.is_empty() {
+            "-".to_string()
+        } else {
+            format!("{} blocked, {} allowed", blocked_count, allowed_count)
+        };
+
         table.add_row(vec![
             Cell::new(&result.url),
             Cell::new(status_str),
-            Cell::new(user_agents_str),
-            Cell::new(crawl_delay_str),
             Cell::new(allowed_str),
             Cell::new(licenses_str),
             Cell::new(tdm_str),
-            Cell::new(sitemaps_str),
-            Cell::new(disallowed_str),
+            Cell::new(ai_summary),
         ]);
     }
 
@@ -95,6 +85,104 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
 pub fn format_json(results: &[AnalysisResult]) -> Result<String> {
     let json = serde_json::to_string_pretty(results)?;
     Ok(json)
+}
+
+/// Format results as CSV with major AI bot columns - perfect for advertiser analysis
+pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
+    let mut csv = String::new();
+
+    // Get major bots for column headers
+    let major_bots = AICrawler::get_major_bots();
+
+    // Build header row
+    let mut headers = vec![
+        "URL",
+        "Status",
+        "Path Allowed",
+        "RSL Licenses",
+        "TDM Reserved",
+    ];
+
+    // Add bot columns
+    for bot in &major_bots {
+        headers.push(&bot.name);
+    }
+
+    // Add final column for all user agents
+    headers.push("All User Agents");
+
+    csv.push_str(&headers.join(","));
+    csv.push('\n');
+
+    // Add data rows
+    for result in results {
+        let mut row = Vec::new();
+
+        // Basic columns
+        row.push(escape_csv_field(&result.url));
+        row.push(format!("{:?}", result.status));
+
+        let path_allowed = if matches!(result.status, AnalysisStatus::Success) {
+            if result.is_path_allowed {
+                "Yes"
+            } else {
+                "No"
+            }
+        } else {
+            "Error"
+        };
+        row.push(path_allowed.to_string());
+
+        row.push(result.active_licenses.len().to_string());
+
+        let tdm_reserved = if let Some(ref tdm) = result.tdm_policy {
+            if tdm.is_reserved {
+                "Yes"
+            } else {
+                "No"
+            }
+        } else {
+            "N/A"
+        };
+        row.push(tdm_reserved.to_string());
+
+        // Add bot status columns
+        for major_bot in &major_bots {
+            let bot_status = result
+                .ai_bot_analysis
+                .iter()
+                .find(|b| b.bot_name == major_bot.name)
+                .map(|b| match b.status {
+                    BotStatus::Blocked => "Blocked",
+                    BotStatus::Allowed => "Allowed",
+                })
+                .unwrap_or("Unknown");
+
+            row.push(bot_status.to_string());
+        }
+
+        // Add all user agents as final column
+        let all_user_agents = if result.user_agents.is_empty() {
+            String::new()
+        } else {
+            escape_csv_field(&result.user_agents.join("; "))
+        };
+        row.push(all_user_agents);
+
+        csv.push_str(&row.join(","));
+        csv.push('\n');
+    }
+
+    Ok(csv)
+}
+
+/// Escape CSV field if it contains comma, quote, or newline
+fn escape_csv_field(field: &str) -> String {
+    if field.contains(',') || field.contains('"') || field.contains('\n') {
+        format!("\"{}\"", field.replace('"', "\"\""))
+    } else {
+        field.to_string()
+    }
 }
 
 pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
@@ -194,6 +282,57 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
                     }
 
                     output.push_str(&format!("  📋 Total Rules: {}\n", tdm.rules.len()));
+                }
+
+                // AI Bot Analysis
+                if !result.ai_bot_analysis.is_empty() {
+                    output.push('\n');
+
+                    let blocked: Vec<_> = result
+                        .ai_bot_analysis
+                        .iter()
+                        .filter(|b| matches!(b.status, BotStatus::Blocked))
+                        .collect();
+
+                    let allowed: Vec<_> = result
+                        .ai_bot_analysis
+                        .iter()
+                        .filter(|b| matches!(b.status, BotStatus::Allowed))
+                        .collect();
+
+                    output.push_str(&format!(
+                        "AI Bot Analysis: {} blocked, {} allowed\n",
+                        blocked.len(),
+                        allowed.len()
+                    ));
+
+                    if !blocked.is_empty() {
+                        output.push_str("\n🚫 Blocked AI Crawlers:\n");
+                        for bot in blocked.iter().take(10) {
+                            output.push_str(&format!(
+                                "  ✗ {} — {} ({})\n",
+                                bot.bot_name, bot.company, bot.category
+                            ));
+                        }
+                        if blocked.len() > 10 {
+                            output.push_str(&format!("  ... and {} more\n", blocked.len() - 10));
+                        }
+                    }
+
+                    if !allowed.is_empty() {
+                        output.push_str("\n✓ Allowed AI Crawlers:\n");
+                        for bot in allowed.iter().take(10) {
+                            output.push_str(&format!(
+                                "  ✓ {} — {} ({})\n",
+                                bot.bot_name, bot.company, bot.category
+                            ));
+                        }
+                        if allowed.len() > 10 {
+                            output.push_str(&format!("  ... and {} more\n", allowed.len() - 10));
+                        }
+                    }
+
+                    output.push_str("\nℹ️  For full AI bot analysis, use --format csv\n");
                 }
             }
             _ => {
