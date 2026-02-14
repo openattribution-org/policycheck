@@ -72,9 +72,10 @@ async fn analyze_handler(
     }
 
     println!(
-        "📊 Analyzing {} URL(s) with user-agent: {}",
+        "📊 Analyzing {} URL(s) with user-agent: {} | URLs: {:?}",
         request.urls.len(),
-        request.user_agent
+        request.user_agent,
+        request.urls
     );
 
     let analyzer = RobotAnalyzer::new(request.user_agent);
