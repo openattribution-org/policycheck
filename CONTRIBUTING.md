@@ -10,7 +10,7 @@ PolicyCheck is part of the [OpenAttribution](https://openattribution.org) initia
 
 ### Prerequisites
 
-- Rust 1.85+ ([Install Rust](https://rustup.rs/))
+- Rust 1.75+ ([Install Rust](https://rustup.rs/))
 - Git
 - Basic familiarity with Rust and command line
 
@@ -54,14 +54,25 @@ PolicyCheck is part of the [OpenAttribution](https://openattribution.org) initia
    ```bash
    cargo test
    ```
-4. Check code formatting:
+4. Format your code:
    ```bash
-   cargo fmt --all -- --check
+   cargo fmt
    ```
 5. Run clippy for linting:
    ```bash
-   cargo clippy --all-targets --all-features -- -D warnings
+   cargo clippy -- -D warnings
    ```
+
+**Pro tip:** Set up a pre-commit hook to run checks automatically:
+```bash
+cat > .git/hooks/pre-commit << 'EOF'
+#!/bin/sh
+cargo fmt -- --check
+cargo clippy -- -D warnings
+cargo test
+EOF
+chmod +x .git/hooks/pre-commit
+```
 
 ### Testing Requirements
 
@@ -183,20 +194,22 @@ git commit -S -m "your message"
 ## Pull Request Process
 
 1. **Update documentation** if you've changed APIs or added features
-2. **Update CHANGELOG.md** with your changes
-3. **Ensure CI passes** - all tests, linting, and formatting checks
-4. **Request review** from maintainers
-5. **Address feedback** promptly and professionally
+2. **Ensure CI passes** - all tests, linting, and formatting checks
+3. **Request review** from maintainers
+4. **Address feedback** promptly and professionally
 
 ### PR Checklist
 
-- [ ] Tests added/updated and passing
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated
-- [ ] Code formatted with `cargo fmt`
-- [ ] Clippy warnings addressed
+Before opening a PR, ensure:
+
+- [ ] Tests added/updated and passing (`cargo test`)
+- [ ] Code formatted (`cargo fmt`)
+- [ ] No clippy warnings (`cargo clippy -- -D warnings`)
+- [ ] Documentation updated (if applicable)
 - [ ] Commit messages follow conventional commits
-- [ ] PR description explains the change
+- [ ] PR description clearly explains the change
+
+**The CI will automatically run all these checks** when you open a PR.
 
 ### PR Template
 
@@ -216,9 +229,10 @@ Brief description of changes
 How has this been tested?
 
 ## Checklist
-- [ ] Tests pass
-- [ ] Documentation updated
-- [ ] CHANGELOG updated
+- [ ] Tests pass (`cargo test`)
+- [ ] Code formatted (`cargo fmt`)
+- [ ] Clippy clean (`cargo clippy -- -D warnings`)
+- [ ] Documentation updated (if applicable)
 ```
 
 ## Areas for Contribution
