@@ -4,9 +4,10 @@
 
 A fast, portable tool for checking web scraping compliance across robots.txt, RSL licenses, and TDM policies. Built with Rust for the [OpenAttribution](https://openattribution.org) initiative.
 
+[![CI](https://github.com/openattribution-org/policycheck/actions/workflows/ci.yml/badge.svg)](https://github.com/openattribution-org/policycheck/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/policycheck.svg)](https://crates.io/crates/policycheck)
+[![MSRV](https://img.shields.io/crates/msrv/policycheck)](https://crates.io/crates/policycheck)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![OpenAttribution](https://img.shields.io/badge/OpenAttribution-🔍-green.svg)](https://openattribution.org)
 
 ## What is PolicyCheck?
