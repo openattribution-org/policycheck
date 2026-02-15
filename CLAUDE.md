@@ -6,8 +6,8 @@ Web attribution and compliance scanner. Checks robots.txt, RSL licenses, and TDM
 
 | Component | Technology |
 |-----------|------------|
-| Language | Rust 2024 edition (1.85+) |
-| HTTP client | reqwest (async + blocking) |
+| Language | Rust 2021 edition (1.75+) |
+| HTTP client | reqwest (async) |
 | CLI | clap (derive) |
 | HTTP server | axum + tower |
 | robots.txt parser | texting_robots |

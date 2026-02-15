@@ -22,7 +22,6 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             AnalysisStatus::Success => "✓ Success",
             AnalysisStatus::FetchError => "✗ Fetch Error",
             AnalysisStatus::ParseError => "✗ Parse Error",
-            AnalysisStatus::InvalidUrl => "✗ Invalid URL",
         };
 
         let allowed_str = if matches!(result.status, AnalysisStatus::Success) {
@@ -89,40 +88,31 @@ pub fn format_json(results: &[AnalysisResult]) -> Result<String> {
 
 /// Format results as CSV with major AI bot columns - perfect for advertiser analysis
 pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
-    let mut csv = String::new();
+    let mut wtr = csv::Writer::from_writer(vec![]);
 
-    // Get major bots for column headers
     let major_bots = AICrawler::get_major_bots();
 
     // Build header row
-    let mut headers = vec![
-        "URL",
-        "Status",
-        "Path Allowed",
-        "RSL Licenses",
-        "TDM Reserved",
-        "CS-Search",
-        "CS-AI-Input",
-        "CS-AI-Train",
+    let mut headers: Vec<String> = vec![
+        "URL".into(),
+        "Status".into(),
+        "Path Allowed".into(),
+        "RSL Licenses".into(),
+        "TDM Reserved".into(),
+        "CS-Search".into(),
+        "CS-AI-Input".into(),
+        "CS-AI-Train".into(),
     ];
-
-    // Add bot columns
     for bot in &major_bots {
-        headers.push(&bot.name);
+        headers.push(bot.name.clone());
     }
+    headers.push("All User Agents".into());
+    wtr.write_record(&headers)?;
 
-    // Add final column for all user agents
-    headers.push("All User Agents");
-
-    csv.push_str(&headers.join(","));
-    csv.push('\n');
-
-    // Add data rows
     for result in results {
-        let mut row = Vec::new();
+        let mut row: Vec<String> = Vec::new();
 
-        // Basic columns
-        row.push(escape_csv_field(&result.url));
+        row.push(result.url.clone());
         row.push(format!("{:?}", result.status));
 
         let path_allowed = if matches!(result.status, AnalysisStatus::Success) {
@@ -134,45 +124,38 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
         } else {
             "Error"
         };
-        row.push(path_allowed.to_string());
-
+        row.push(path_allowed.into());
         row.push(result.active_licenses.len().to_string());
 
-        let tdm_reserved = if let Some(ref tdm) = result.tdm_policy {
-            if tdm.is_reserved {
-                "Yes"
-            } else {
-                "No"
-            }
-        } else {
-            "N/A"
+        let tdm_reserved = match result.tdm_policy {
+            Some(ref tdm) if tdm.is_reserved => "Yes",
+            Some(_) => "No",
+            None => "N/A",
         };
-        row.push(tdm_reserved.to_string());
+        row.push(tdm_reserved.into());
 
-        // Add Content Signal columns
         row.push(
             result
                 .content_signal_search
                 .as_deref()
                 .unwrap_or("unspecified")
-                .to_string(),
+                .into(),
         );
         row.push(
             result
                 .content_signal_ai_input
                 .as_deref()
                 .unwrap_or("unspecified")
-                .to_string(),
+                .into(),
         );
         row.push(
             result
                 .content_signal_ai_train
                 .as_deref()
                 .unwrap_or("unspecified")
-                .to_string(),
+                .into(),
         );
 
-        // Add bot status columns
         for major_bot in &major_bots {
             let bot_status = result
                 .ai_bot_analysis
@@ -183,32 +166,17 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
                     BotStatus::Allowed => "Allowed",
                 })
                 .unwrap_or("Unknown");
-
-            row.push(bot_status.to_string());
+            row.push(bot_status.into());
         }
 
-        // Add all user agents as final column
-        let all_user_agents = if result.user_agents.is_empty() {
-            String::new()
-        } else {
-            escape_csv_field(&result.user_agents.join("; "))
-        };
+        let all_user_agents = result.user_agents.join("; ");
         row.push(all_user_agents);
 
-        csv.push_str(&row.join(","));
-        csv.push('\n');
+        wtr.write_record(&row)?;
     }
 
-    Ok(csv)
-}
-
-/// Escape CSV field if it contains comma, quote, or newline
-fn escape_csv_field(field: &str) -> String {
-    if field.contains(',') || field.contains('"') || field.contains('\n') {
-        format!("\"{}\"", field.replace('"', "\"\""))
-    } else {
-        field.to_string()
-    }
+    let data = String::from_utf8(wtr.into_inner()?)?;
+    Ok(data)
 }
 
 pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
@@ -411,4 +379,63 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
     ));
 
     Ok(output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::AnalysisResult;
+
+    fn make_result(url: &str) -> AnalysisResult {
+        AnalysisResult {
+            url: url.to_string(),
+            robots_url: format!("{}/robots.txt", url),
+            status: AnalysisStatus::Success,
+            user_agents: vec!["*".to_string()],
+            crawl_delay: None,
+            sitemaps: vec![],
+            allowed_paths: vec![],
+            disallowed_paths: vec![],
+            is_path_allowed: true,
+            global_licenses: vec![],
+            group_licenses: vec![],
+            active_licenses: vec![],
+            content_signal_search: None,
+            content_signal_ai_input: None,
+            content_signal_ai_train: None,
+            tdm_policy: None,
+            ai_bot_analysis: vec![],
+            error: None,
+        }
+    }
+
+    #[test]
+    fn test_csv_header_contains_bot_columns() {
+        let results = vec![make_result("https://www.nytimes.com")];
+        let csv = format_csv(&results).unwrap();
+        let header_line = csv.lines().next().unwrap();
+        assert!(header_line.contains("URL"));
+        assert!(header_line.contains("GPTBot"));
+        assert!(header_line.contains("ClaudeBot"));
+        assert!(header_line.contains("All User Agents"));
+    }
+
+    #[test]
+    fn test_csv_escapes_commas() {
+        let mut result = make_result("https://www.nytimes.com");
+        result.user_agents = vec!["Bot,One".to_string(), "BotTwo".to_string()];
+        let csv = format_csv(&[result]).unwrap();
+        let data_line = csv.lines().nth(1).unwrap();
+        // csv crate quotes fields containing commas
+        assert!(data_line.contains("\"Bot,One; BotTwo\""));
+    }
+
+    #[test]
+    fn test_json_round_trip() {
+        let result = make_result("https://github.com");
+        let json_str = format_json(&[result]).unwrap();
+        let parsed: Vec<AnalysisResult> = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].url, "https://github.com");
+    }
 }

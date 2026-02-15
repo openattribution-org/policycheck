@@ -2,7 +2,7 @@ use crate::analyzer::RobotAnalyzer;
 use crate::models::{AnalysisStatus, AnalyzeRequest, AnalyzeResponse};
 use anyhow::Result;
 use axum::{
-    extract::Json,
+    extract::{DefaultBodyLimit, Json},
     http::{HeaderValue, StatusCode},
     response::IntoResponse,
     routing::{get, post},
@@ -12,7 +12,23 @@ use serde_json::json;
 use std::env;
 use tower_http::cors::{Any, CorsLayer};
 
-pub async fn start_server(host: &str, port: u16) -> Result<()> {
+const MAX_URLS_PER_REQUEST: usize = 100;
+
+struct ApiError {
+    status: StatusCode,
+    message: String,
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> axum::response::Response {
+        let body = Json(serde_json::json!({
+            "error": self.message
+        }));
+        (self.status, body).into_response()
+    }
+}
+
+pub fn build_router() -> Router {
     // CORS configuration - allow specific origins via ALLOWED_ORIGINS env var
     // Format: comma-separated list (e.g., "https://openattribution.org,https://example.com")
     // If not set, allows all origins (useful for development and open source deployments)
@@ -33,11 +49,16 @@ pub async fn start_server(host: &str, port: u16) -> Result<()> {
             .allow_headers(Any)
     };
 
-    let app = Router::new()
+    Router::new()
         .route("/", get(health_check))
         .route("/health", get(health_check))
         .route("/analyze", post(analyze_handler))
-        .layer(cors);
+        .layer(cors)
+        .layer(DefaultBodyLimit::max(1_048_576))
+}
+
+pub async fn start_server(host: &str, port: u16) -> Result<()> {
+    let app = build_router();
 
     let addr = format!("{}:{}", host, port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
@@ -66,9 +87,23 @@ async fn health_check() -> impl IntoResponse {
 
 async fn analyze_handler(
     Json(request): Json<AnalyzeRequest>,
-) -> Result<Json<AnalyzeResponse>, (StatusCode, String)> {
+) -> Result<Json<AnalyzeResponse>, ApiError> {
     if request.urls.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "No URLs provided".to_string()));
+        return Err(ApiError {
+            status: StatusCode::BAD_REQUEST,
+            message: "No URLs provided".to_string(),
+        });
+    }
+
+    if request.urls.len() > MAX_URLS_PER_REQUEST {
+        return Err(ApiError {
+            status: StatusCode::BAD_REQUEST,
+            message: format!(
+                "Too many URLs: {} provided, maximum is {}",
+                request.urls.len(),
+                MAX_URLS_PER_REQUEST
+            ),
+        });
     }
 
     println!(
@@ -94,4 +129,93 @@ async fn analyze_handler(
     };
 
     Ok(Json(response))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_health_check() {
+        let app = build_router();
+
+        let request = axum::http::Request::builder()
+            .uri("/health")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(body["status"], "healthy");
+    }
+
+    #[tokio::test]
+    async fn test_empty_urls() {
+        let app = build_router();
+
+        let request = axum::http::Request::builder()
+            .uri("/analyze")
+            .method("POST")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                serde_json::to_string(&json!({
+                    "urls": [],
+                    "user_agent": "TestBot"
+                }))
+                .unwrap(),
+            ))
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(body["error"], "No URLs provided");
+    }
+
+    #[tokio::test]
+    async fn test_too_many_urls() {
+        let app = build_router();
+
+        let urls: Vec<String> = (0..101)
+            .map(|i| format!("https://example-{}.com", i))
+            .collect();
+
+        let request = axum::http::Request::builder()
+            .uri("/analyze")
+            .method("POST")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                serde_json::to_string(&json!({
+                    "urls": urls,
+                    "user_agent": "TestBot"
+                }))
+                .unwrap(),
+            ))
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        let error_msg = body["error"].as_str().unwrap();
+        assert!(
+            error_msg.contains("100"),
+            "Error should mention max 100 URLs"
+        );
+    }
 }

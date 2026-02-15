@@ -53,7 +53,6 @@ pub enum AnalysisStatus {
     Success,
     FetchError,
     ParseError,
-    InvalidUrl,
 }
 
 impl AnalysisResult {
