@@ -7,7 +7,7 @@ Web attribution and compliance scanner. Checks robots.txt, RSL licenses, and TDM
 | Component | Technology |
 |-----------|------------|
 | Language | Rust 2021 edition (1.75+) |
-| HTTP client | reqwest (async) |
+| HTTP client | reqwest (async, rustls-tls) |
 | CLI | clap (derive) |
 | HTTP server | axum + tower |
 | robots.txt parser | texting_robots |
@@ -104,13 +104,23 @@ When adding features:
 - **500KB robots.txt limit** — follows Google's recommendation
 - **10s HTTP timeout** — fail fast, don't hang on unresponsive hosts
 - **Concurrent analysis** — `tokio::spawn` per URL for parallel fetching
+- **rustls-tls** — reqwest uses `rustls-tls` (not `native-tls`) to avoid OpenSSL C dependency; required for cross-compiling aarch64 Linux in CI
+- **Server limits** — 1MB body limit, max 100 URLs per request
 
 ## CI/CD
 
 GitHub Actions workflows in `.github/workflows/`:
 - `ci.yml` — build + test on push/PR
-- `release.yml` — binary releases
+- `release.yml` — binary releases via `softprops/action-gh-release@v2`
 - `docs.yml` — documentation
+
+### Cross-compilation
+
+The aarch64 Linux build cross-compiles on x86_64 runners. This requires:
+- `gcc-aarch64-linux-gnu` installed on the runner
+- `CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc` set during build
+- `aarch64-linux-gnu-strip` used instead of `strip` for the binary
+- `rustls-tls` instead of `native-tls` (OpenSSL can't cross-compile without a sysroot)
 
 ## Examples and Testing
 
