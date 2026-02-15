@@ -595,6 +595,24 @@ func checkCompliance(urls []string, userAgent string) (*AnalyzeResponse, error) 
 
 ### Docker
 
+#### Using Pre-built Image (Recommended)
+
+Pull and run the official image from GitHub Container Registry:
+
+```bash
+# Latest version
+docker pull ghcr.io/openattribution-org/policycheck:latest
+docker run -p 3000:3000 ghcr.io/openattribution-org/policycheck:latest
+
+# Specific version
+docker pull ghcr.io/openattribution-org/policycheck:0.2.0
+docker run -p 3000:3000 ghcr.io/openattribution-org/policycheck:0.2.0
+```
+
+Multi-platform images available for `linux/amd64` and `linux/arm64`.
+
+#### Building from Source
+
 ```dockerfile
 FROM rust:1.92-slim as builder
 WORKDIR /app
@@ -633,7 +651,7 @@ spec:
     spec:
       containers:
       - name: policycheck
-        image: openattribution/policycheck:latest
+        image: ghcr.io/openattribution-org/policycheck:latest
         ports:
         - containerPort: 3000
         livenessProbe:
@@ -653,6 +671,29 @@ spec:
     port: 80
     targetPort: 3000
   type: LoadBalancer
+```
+
+### Podman Compose
+
+For local development or production deployments using podman-compose:
+
+```yaml
+# podman-compose.yml
+services:
+  policycheck:
+    image: ghcr.io/openattribution-org/policycheck:latest
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+Run with:
+```bash
+podman-compose up -d
 ```
 
 ## Roadmap
