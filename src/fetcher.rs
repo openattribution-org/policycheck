@@ -4,6 +4,7 @@ use url::Url;
 
 use crate::models::TdmRule;
 
+#[derive(Clone)]
 pub struct RobotFetcher {
     client: reqwest::Client,
 }
@@ -12,7 +13,7 @@ impl RobotFetcher {
     pub fn new() -> Self {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (compatible; PolicyCheck/0.1.0; +https://github.com/openattribution-org/policycheck)")
+            .user_agent(format!("Mozilla/5.0 (compatible; PolicyCheck/{}; +https://github.com/openattribution-org/policycheck)", env!("CARGO_PKG_VERSION")))
             .build()
             .expect("Failed to create HTTP client");
 
@@ -21,14 +22,13 @@ impl RobotFetcher {
 
     /// Get the robots.txt URL for a given base URL
     pub fn get_robots_url(base_url: &str) -> Result<String> {
-        // Use texting_robots helper if available, otherwise construct manually
         let parsed = Url::parse(base_url).context("Invalid URL")?;
+        let host = parsed.host_str().context("URL has no host")?;
 
-        let robots_url = format!(
-            "{}://{}/robots.txt",
-            parsed.scheme(),
-            parsed.host_str().context("URL has no host")?
-        );
+        let robots_url = match parsed.port() {
+            Some(port) => format!("{}://{}:{}/robots.txt", parsed.scheme(), host, port),
+            None => format!("{}://{}/robots.txt", parsed.scheme(), host),
+        };
 
         Ok(robots_url)
     }
@@ -73,12 +73,17 @@ impl RobotFetcher {
     /// Get the TDM policy URL for a given base URL
     pub fn get_tdm_url(base_url: &str) -> Result<String> {
         let parsed = Url::parse(base_url).context("Invalid URL")?;
+        let host = parsed.host_str().context("URL has no host")?;
 
-        let tdm_url = format!(
-            "{}://{}/.well-known/tdmrep.json",
-            parsed.scheme(),
-            parsed.host_str().context("URL has no host")?
-        );
+        let tdm_url = match parsed.port() {
+            Some(port) => format!(
+                "{}://{}:{}/.well-known/tdmrep.json",
+                parsed.scheme(),
+                host,
+                port
+            ),
+            None => format!("{}://{}/.well-known/tdmrep.json", parsed.scheme(), host),
+        };
 
         Ok(tdm_url)
     }
@@ -118,5 +123,56 @@ impl RobotFetcher {
 impl Default for RobotFetcher {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_robots_url_standard() {
+        let url = RobotFetcher::get_robots_url("https://www.nytimes.com").unwrap();
+        assert_eq!(url, "https://www.nytimes.com/robots.txt");
+    }
+
+    #[test]
+    fn test_get_robots_url_with_port() {
+        let url = RobotFetcher::get_robots_url("https://localhost:8080/page").unwrap();
+        assert_eq!(url, "https://localhost:8080/robots.txt");
+    }
+
+    #[test]
+    fn test_get_robots_url_http_scheme() {
+        let url = RobotFetcher::get_robots_url("http://example.com/path").unwrap();
+        assert_eq!(url, "http://example.com/robots.txt");
+    }
+
+    #[test]
+    fn test_get_robots_url_with_path_stripped() {
+        let url = RobotFetcher::get_robots_url("https://github.com/some/path").unwrap();
+        assert_eq!(url, "https://github.com/robots.txt");
+    }
+
+    #[test]
+    fn test_get_robots_url_invalid() {
+        assert!(RobotFetcher::get_robots_url("not-a-url").is_err());
+    }
+
+    #[test]
+    fn test_get_tdm_url_standard() {
+        let url = RobotFetcher::get_tdm_url("https://www.nytimes.com").unwrap();
+        assert_eq!(url, "https://www.nytimes.com/.well-known/tdmrep.json");
+    }
+
+    #[test]
+    fn test_get_tdm_url_with_port() {
+        let url = RobotFetcher::get_tdm_url("https://localhost:3000/page").unwrap();
+        assert_eq!(url, "https://localhost:3000/.well-known/tdmrep.json");
+    }
+
+    #[test]
+    fn test_get_tdm_url_invalid() {
+        assert!(RobotFetcher::get_tdm_url("not-a-url").is_err());
     }
 }

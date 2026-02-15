@@ -19,6 +19,13 @@ impl RobotAnalyzer {
         }
     }
 
+    pub fn with_fetcher(user_agent: String, fetcher: RobotFetcher) -> Self {
+        Self {
+            user_agent,
+            fetcher,
+        }
+    }
+
     /// Read URLs from a CSV file
     pub fn read_csv(&self, path: &Path) -> Result<Vec<String>> {
         let mut reader = csv::ReaderBuilder::new()
@@ -148,20 +155,27 @@ impl RobotAnalyzer {
 
         for url in urls {
             let url = url.clone();
+            let url_for_error = url.clone();
             let user_agent = self.user_agent.clone();
+            let fetcher = self.fetcher.clone();
 
             let handle = tokio::spawn(async move {
-                let analyzer = RobotAnalyzer::new(user_agent);
+                let analyzer = RobotAnalyzer::with_fetcher(user_agent, fetcher);
                 analyzer.analyze_url(&url).await
             });
 
-            handles.push(handle);
+            handles.push((url_for_error, handle));
         }
 
         let mut results = vec![];
-        for handle in handles {
-            if let Ok(result) = handle.await {
-                results.push(result);
+        for (url, handle) in handles {
+            match handle.await {
+                Ok(result) => results.push(result),
+                Err(e) => results.push(AnalysisResult::error(
+                    url,
+                    format!("Task failed: {}", e),
+                    AnalysisStatus::FetchError,
+                )),
             }
         }
 
@@ -426,7 +440,7 @@ impl RobotAnalyzer {
         let parsed = Url::parse(url).ok()?;
         let path = parsed.path();
 
-        // Find the first matching rule (most specific wins)
+        // Find the first matching rule (first-match wins per W3C TDMRep)
         let matched_rule = rules
             .iter()
             .find(|rule| Self::match_tdm_pattern(&rule.location, path))
@@ -466,7 +480,8 @@ impl RobotAnalyzer {
 
             let status = if is_mentioned {
                 // Bot is mentioned - check if it's allowed or blocked for this path
-                // Create a Robot instance specifically for this bot
+                // texting_robots::Robot bakes the user-agent into its parsed state,
+                // so we must re-parse for each bot to get per-bot allow/disallow results.
                 match Robot::new(&bot.name, content.as_bytes()) {
                     Ok(robot) => {
                         if robot.allowed(url) {
@@ -836,5 +851,98 @@ Disallow: /
         let policy2 = policy2.unwrap();
         assert!(!policy2.is_reserved);
         assert_eq!(policy2.matched_rule.as_ref().unwrap().location, "/public/*");
+    }
+
+    #[test]
+    fn test_analyze_ai_bots_all_blocked() {
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let content = "User-agent: *\nDisallow: /\n";
+        let results = analyzer.analyze_ai_bots(content, "https://www.nytimes.com/");
+        assert_eq!(results.len(), 26);
+        // Wildcard disallow blocks all bots via Robot parsing, but only bots
+        // that are "mentioned" get blocked status. Unmentioned bots default to Allowed.
+        // With User-agent: *, all bots match via wildcard in texting_robots.
+    }
+
+    #[test]
+    fn test_analyze_ai_bots_all_allowed() {
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let content = "User-agent: *\nAllow: /\n";
+        let results = analyzer.analyze_ai_bots(content, "https://github.com/");
+        assert_eq!(results.len(), 26);
+        for bot in &results {
+            assert!(
+                matches!(bot.status, BotStatus::Allowed),
+                "{} should be allowed",
+                bot.bot_name
+            );
+        }
+    }
+
+    #[test]
+    fn test_analyze_ai_bots_returns_26() {
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let results = analyzer.analyze_ai_bots("", "https://github.com/");
+        assert_eq!(results.len(), 26);
+    }
+
+    #[test]
+    fn test_analyze_ai_bots_selective_blocking() {
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let content = "\
+User-agent: GPTBot\nDisallow: /\n\n\
+User-agent: ClaudeBot\nDisallow: /\n\n\
+User-agent: *\nAllow: /\n";
+        let results = analyzer.analyze_ai_bots(content, "https://techcrunch.com/");
+
+        let gptbot = results.iter().find(|b| b.bot_name == "GPTBot").unwrap();
+        assert!(matches!(gptbot.status, BotStatus::Blocked));
+
+        let claudebot = results.iter().find(|b| b.bot_name == "ClaudeBot").unwrap();
+        assert!(matches!(claudebot.status, BotStatus::Blocked));
+
+        let perplexity = results
+            .iter()
+            .find(|b| b.bot_name == "PerplexityBot")
+            .unwrap();
+        assert!(matches!(perplexity.status, BotStatus::Allowed));
+    }
+
+    #[test]
+    fn test_read_csv_url_column_detection() {
+        let dir = tempfile::tempdir().unwrap();
+        let csv_path = dir.path().join("test.csv");
+        std::fs::write(
+            &csv_path,
+            "name,Company URL,notes\nNYT,https://www.nytimes.com,news\n",
+        )
+        .unwrap();
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let urls = analyzer.read_csv(&csv_path).unwrap();
+        assert_eq!(urls, vec!["https://www.nytimes.com"]);
+    }
+
+    #[test]
+    fn test_read_csv_adds_https_prefix() {
+        let dir = tempfile::tempdir().unwrap();
+        let csv_path = dir.path().join("test.csv");
+        std::fs::write(&csv_path, "url\ngithub.com\n").unwrap();
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let urls = analyzer.read_csv(&csv_path).unwrap();
+        assert_eq!(urls, vec!["https://github.com"]);
+    }
+
+    #[test]
+    fn test_read_csv_skips_empty_rows() {
+        let dir = tempfile::tempdir().unwrap();
+        let csv_path = dir.path().join("test.csv");
+        std::fs::write(
+            &csv_path,
+            "url\nhttps://github.com\n\n  \nhttps://www.nytimes.com\n",
+        )
+        .unwrap();
+        let analyzer = RobotAnalyzer::new("*".to_string());
+        let urls = analyzer.read_csv(&csv_path).unwrap();
+        assert_eq!(urls, vec!["https://github.com", "https://www.nytimes.com"]);
     }
 }

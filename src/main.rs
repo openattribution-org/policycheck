@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 mod ai_crawlers;
@@ -10,6 +10,14 @@ mod output;
 mod server;
 
 use analyzer::RobotAnalyzer;
+
+#[derive(Clone, ValueEnum)]
+enum OutputFormat {
+    Table,
+    Json,
+    Csv,
+    Compact,
+}
 
 #[derive(Parser)]
 #[command(name = "policycheck")]
@@ -36,9 +44,9 @@ enum Commands {
         #[arg(short = 'a', long, default_value = "*")]
         user_agent: String,
 
-        /// Output format: table, json, csv, or compact
+        /// Output format
         #[arg(short, long, default_value = "table")]
-        format: String,
+        format: OutputFormat,
 
         /// Save output to file
         #[arg(short, long)]
@@ -89,11 +97,11 @@ async fn main() -> Result<()> {
             let results = analyzer.analyze_urls(&urls).await;
 
             // Output results
-            let output_str = match format.as_str() {
-                "json" => output::format_json(&results)?,
-                "compact" => output::format_compact(&results)?,
-                "csv" => output::format_csv(&results)?,
-                _ => output::format_table(&results)?,
+            let output_str = match format {
+                OutputFormat::Json => output::format_json(&results)?,
+                OutputFormat::Compact => output::format_compact(&results)?,
+                OutputFormat::Csv => output::format_csv(&results)?,
+                OutputFormat::Table => output::format_table(&results)?,
             };
 
             if let Some(output_path) = output {
