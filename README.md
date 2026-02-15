@@ -349,10 +349,12 @@ policycheck serve --port 3000 --host 0.0.0.0
 ```
 
 **Features:**
-- ✅ CORS enabled (all origins)
+- ✅ CORS enabled (all origins, or set `ALLOWED_ORIGINS` env var)
 - ✅ JSON request/response
 - ✅ Concurrent request handling
 - ✅ 10s timeout per URL
+- ✅ 1MB request body limit
+- ✅ Max 100 URLs per request
 
 ### API Endpoints
 
@@ -365,7 +367,7 @@ Health check endpoint.
 {
   "status": "healthy",
   "service": "policycheck",
-  "version": "0.1.0"
+  "version": "0.2.1"
 }
 ```
 
@@ -605,8 +607,8 @@ docker pull ghcr.io/openattribution-org/policycheck:latest
 docker run -p 3000:3000 ghcr.io/openattribution-org/policycheck:latest
 
 # Specific version
-docker pull ghcr.io/openattribution-org/policycheck:0.2.0
-docker run -p 3000:3000 ghcr.io/openattribution-org/policycheck:0.2.0
+docker pull ghcr.io/openattribution-org/policycheck:0.2.1
+docker run -p 3000:3000 ghcr.io/openattribution-org/policycheck:0.2.1
 ```
 
 Multi-platform images available for `linux/amd64` and `linux/arm64`.
@@ -781,7 +783,8 @@ Typical performance:
 ## Security Considerations
 
 - **Input validation**: URLs are validated before processing
-- **Size limits**: robots.txt files limited to 500KB (Google's recommendation)
+- **Size limits**: robots.txt files limited to 500KB (Google's recommendation), request bodies limited to 1MB
+- **Rate limiting**: Max 100 URLs per request
 - **Timeouts**: HTTP requests timeout after 10 seconds
 - **No arbitrary code execution**: Pure parsing, no eval or dynamic code
 - **CORS enabled**: API server has CORS enabled by default
