@@ -1,5 +1,4 @@
 use crate::analyzer::RobotAnalyzer;
-use crate::models::{AnalysisStatus, AnalyzeRequest, AnalyzeResponse};
 use anyhow::Result;
 use axum::{
     extract::{DefaultBodyLimit, Json},
@@ -8,9 +7,30 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use policycheck_core::models::{AnalysisResult, AnalysisStatus};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::env;
 use tower_http::cors::{Any, CorsLayer};
+
+#[derive(Debug, Deserialize)]
+pub struct AnalyzeRequest {
+    pub urls: Vec<String>,
+    #[serde(default = "default_user_agent")]
+    pub user_agent: String,
+}
+
+fn default_user_agent() -> String {
+    "*".to_string()
+}
+
+#[derive(Debug, Serialize)]
+pub struct AnalyzeResponse {
+    pub results: Vec<AnalysisResult>,
+    pub total: usize,
+    pub successful: usize,
+    pub failed: usize,
+}
 
 const MAX_URLS_PER_REQUEST: usize = 100;
 
@@ -29,9 +49,6 @@ impl IntoResponse for ApiError {
 }
 
 pub fn build_router() -> Router {
-    // CORS configuration - allow specific origins via ALLOWED_ORIGINS env var
-    // Format: comma-separated list (e.g., "https://openattribution.org,https://example.com")
-    // If not set, allows all origins (useful for development and open source deployments)
     let cors = if let Ok(allowed_origins) = env::var("ALLOWED_ORIGINS") {
         let origins: Vec<HeaderValue> = allowed_origins
             .split(',')

@@ -58,7 +58,7 @@ pub enum AnalysisStatus {
 impl AnalysisResult {
     pub fn error(url: String, error: String, status: AnalysisStatus) -> Self {
         Self {
-            url: url.clone(),
+            url,
             robots_url: String::new(),
             status,
             user_agents: vec![],
@@ -80,21 +80,3 @@ impl AnalysisResult {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct AnalyzeRequest {
-    pub urls: Vec<String>,
-    #[serde(default = "default_user_agent")]
-    pub user_agent: String,
-}
-
-fn default_user_agent() -> String {
-    "*".to_string()
-}
-
-#[derive(Debug, Serialize)]
-pub struct AnalyzeResponse {
-    pub results: Vec<AnalysisResult>,
-    pub total: usize,
-    pub successful: usize,
-    pub failed: usize,
-}

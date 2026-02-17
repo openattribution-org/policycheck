@@ -1,0 +1,19 @@
+[package]
+name = "policycheck-core"
+description = "Publisher policy compliance library - parses robots.txt, RSL licenses, Content Signals, and TDM policies"
+readme = "README.md"
+keywords = ["robots", "rsl", "tdm", "policy", "compliance"]
+categories = ["web-programming", "parser-implementations"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+texting_robots = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+url = "2.5"

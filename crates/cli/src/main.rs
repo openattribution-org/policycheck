@@ -2,10 +2,8 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
-mod ai_crawlers;
 mod analyzer;
 mod fetcher;
-mod models;
 mod output;
 mod server;
 
@@ -74,7 +72,7 @@ async fn main() -> Result<()> {
             csv,
             user_agent,
             format,
-            output,
+            output: output_path,
         } => {
             let analyzer = RobotAnalyzer::new(user_agent);
 
@@ -104,9 +102,9 @@ async fn main() -> Result<()> {
                 OutputFormat::Table => output::format_table(&results)?,
             };
 
-            if let Some(output_path) = output {
-                std::fs::write(&output_path, &output_str).context("Failed to write output file")?;
-                println!("Results written to {}", output_path.display());
+            if let Some(path) = output_path {
+                std::fs::write(&path, &output_str).context("Failed to write output file")?;
+                println!("Results written to {}", path.display());
             } else {
                 println!("{}", output_str);
             }

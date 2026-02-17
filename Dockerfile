@@ -5,12 +5,10 @@ WORKDIR /app
 
 # Copy manifests
 COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
 
-# Copy source
-COPY src ./src
-
-# Build release binary
-RUN cargo build --release
+# Build release binary (CLI server only — skip WASM crate)
+RUN cargo build --release -p policycheck
 
 # Runtime stage
 FROM debian:bookworm-slim

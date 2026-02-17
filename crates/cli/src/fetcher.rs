@@ -1,8 +1,7 @@
 use anyhow::{Context, Result};
+use policycheck_core::models::TdmRule;
 use std::time::Duration;
 use url::Url;
-
-use crate::models::TdmRule;
 
 #[derive(Clone)]
 pub struct RobotFetcher {
@@ -112,7 +111,6 @@ impl RobotFetcher {
             .await
             .context("Failed to read TDM response body")?;
 
-        // Parse JSON array of TDM rules
         let rules: Vec<TdmRule> =
             serde_json::from_str(&content).context("Failed to parse tdmrep.json")?;
 

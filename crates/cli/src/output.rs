@@ -1,5 +1,5 @@
-use crate::ai_crawlers::{AICrawler, BotStatus};
-use crate::models::{AnalysisResult, AnalysisStatus};
+use policycheck_core::ai_crawlers::{AICrawler, BotStatus};
+use policycheck_core::models::{AnalysisResult, AnalysisStatus};
 use anyhow::Result;
 use comfy_table::{modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, *};
 
@@ -260,7 +260,7 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
                     output.push('\n');
                 }
 
-                // Content Signals (Cloudflare AI policy framework)
+                // Content Signals
                 if result.content_signal_search.is_some()
                     || result.content_signal_ai_input.is_some()
                     || result.content_signal_ai_train.is_some()
@@ -384,7 +384,6 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::AnalysisResult;
 
     fn make_result(url: &str) -> AnalysisResult {
         AnalysisResult {
@@ -426,7 +425,6 @@ mod tests {
         result.user_agents = vec!["Bot,One".to_string(), "BotTwo".to_string()];
         let csv = format_csv(&[result]).unwrap();
         let data_line = csv.lines().nth(1).unwrap();
-        // csv crate quotes fields containing commas
         assert!(data_line.contains("\"Bot,One; BotTwo\""));
     }
 
