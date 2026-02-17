@@ -10,4 +10,5 @@ dependencies = [
     "requests",
     "pandas",
     "python-dotenv>=1.2.1",
+    "matplotlib>=3.10.8",
 ]
