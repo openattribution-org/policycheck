@@ -17,7 +17,7 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 - ✅ **Robots.txt** - What paths you can crawl (REP/RFC 9309)
 - 📜 **RSL Licenses** - Required licensing terms (Responsible Sourcing License)
 - 🎯 **Content Signals** - AI usage preferences (Cloudflare's policy framework)
-- 🤖 **TDM Policies** - Text & Data Mining permissions (coming soon)
+- 🤖 **TDM Policies** - Text & Data Mining permissions (W3C TDMRep)
 - 🔒 **Privacy Controls** - DNT, GPC signals (coming soon)
 - 📧 **Security Contacts** - Who to contact about scraping (coming soon)
 
@@ -65,10 +65,30 @@ For development or the latest unreleased features:
 ```bash
 git clone https://github.com/openattribution-org/policycheck.git
 cd policycheck
-cargo build --release
+cargo build --release -p policycheck
 ```
 
 The binary will be at `target/release/policycheck`.
+
+#### As a Library
+
+Use the core parsing library in your own project (no network I/O, WASM-compatible):
+
+```bash
+cargo add policycheck-core
+```
+
+```rust
+use policycheck_core::PolicyAnalyzer;
+
+let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
+let result = analyzer.analyze(
+    "https://www.nytimes.com",
+    "User-agent: GPTBot\nDisallow: /\n",
+    None,
+);
+assert!(!result.is_path_allowed);
+```
 
 ### Basic Usage
 
@@ -617,10 +637,11 @@ Multi-platform images available for `linux/amd64` and `linux/arm64`.
 #### Building from Source
 
 ```dockerfile
-FROM rust:1.92-slim as builder
+FROM rust:1.85-bookworm as builder
 WORKDIR /app
-COPY . .
-RUN cargo build --release
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+RUN cargo build --release -p policycheck
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
@@ -711,9 +732,10 @@ podman-compose up -d
 - [x] CSV batch processing
 - [x] HTTP API server
 - [x] Multiple output formats
+- [x] TDM (Text & Data Mining) policy detection (`/.well-known/tdmrep.json`)
+- [x] Content Signals (Cloudflare AI policy framework)
 
 ### 🚧 In Progress
-- [ ] TDM (Text & Data Mining) policy detection (`/.well-known/tdmrep.json`)
 - [ ] Security contact discovery (`/.well-known/security.txt`)
 - [ ] Privacy control detection (DNT, GPC)
 
@@ -797,7 +819,7 @@ PolicyCheck implements the following standards:
 - ✅ **RFC 9309**: Robots Exclusion Protocol (REP)
 - ✅ **RSL Standard**: Responsible Sourcing License
 - ✅ **Content Signals**: Cloudflare's AI Policy Framework (CC0 License)
-- 🚧 **W3C TDMRep**: Text and Data Mining Reservation Protocol (planned)
+- ✅ **W3C TDMRep**: Text and Data Mining Reservation Protocol
 - 🚧 **RFC 9116**: security.txt (planned)
 - 🚧 **RFC 8615**: Well-Known URIs (planned)
 

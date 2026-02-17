@@ -18,44 +18,58 @@ Web attribution and compliance scanner. Checks robots.txt, RSL licenses, and TDM
 
 ## Architecture
 
-Single binary, seven modules:
+Cargo workspace with two crates:
 
 ```
-src/
-  main.rs        — CLI entry point (clap), dispatches to analyze or serve
-  ai_crawlers.rs — Canonical list of 26 AI crawlers (GPTBot, ClaudeBot, etc.)
-  analyzer.rs    — Core logic: parse robots.txt, extract licenses, evaluate TDM, analyze AI bots
-  fetcher.rs     — HTTP fetching for robots.txt and /.well-known/tdmrep.json
-  models.rs      — Data types: AnalysisResult, TdmPolicy, BotAnalysisResult, request/response shapes
-  output.rs      — Formatters: table, JSON, CSV (with AI bot columns), compact text
-  server.rs      — Axum HTTP API (GET /health, POST /analyze)
+crates/
+  core/                    — policycheck-core (pure library, no I/O, WASM-compatible)
+    src/
+      lib.rs               — PolicyAnalyzer facade, orchestrates all checks
+      ai_crawlers.rs       — Canonical list of 26 AI crawlers (GPTBot, ClaudeBot, etc.)
+      models.rs            — Data types: AnalysisResult, TdmPolicy, BotAnalysisResult
+      checks/
+        mod.rs             — Check module index
+        robots.rs          — RFC 9309 robots.txt parsing (user agents, paths, crawl delay)
+        rsl.rs             — RSL licence extraction (global, group-scoped, precedence)
+        content_signals.rs — Cloudflare Content Signals (search, ai-input, ai-train)
+        tdm.rs             — W3C TDMRep pattern matching and rule evaluation
+        ai_bots.rs         — Per-bot access analysis for 26 AI crawlers
+  cli/                     — policycheck (binary: CLI + HTTP server)
+    src/
+      main.rs              — CLI entry point (clap), dispatches to analyze or serve
+      analyzer.rs          — Network-aware analyzer wrapping core with HTTP fetching
+      fetcher.rs           — HTTP fetching for robots.txt and /.well-known/tdmrep.json
+      output.rs            — Formatters: table, JSON, CSV (with AI bot columns), compact text
+      server.rs            — Axum HTTP API (GET /health, POST /analyze)
 ```
 
-No workspaces, no proc macros, no feature flags. Keep it simple.
+The core crate has 4 dependencies (texting_robots, serde, serde_json, url) and no network I/O. The CLI crate owns reqwest, axum, and all I/O concerns. No proc macros, no feature flags.
 
 ## Commands
 
 ```bash
 # Build
-cargo build                    # Debug
+cargo build                    # Debug (whole workspace)
 cargo build --release          # Optimised (LTO, strip)
+cargo build -p policycheck     # CLI only
 
 # Test
-cargo test                     # All tests
+cargo test --workspace         # All tests (core + CLI)
+cargo test -p policycheck-core # Core library only
 cargo test -- --nocapture      # With stdout
 
 # Run - Single URL
-cargo run -- analyze --url https://www.nytimes.com
-cargo run -- analyze --url https://github.com --format json
+cargo run -p policycheck -- analyze --url https://www.nytimes.com
+cargo run -p policycheck -- analyze --url https://github.com --format json
 
 # Run - Bulk analysis with CSV export (advertiser use case)
-cargo run -- analyze --csv publishers.csv --format csv --output results.csv
+cargo run -p policycheck -- analyze --csv publishers.csv --format csv --output results.csv
 
 # Run - HTTP server
-cargo run -- serve --port 3000
+cargo run -p policycheck -- serve --port 3000
 
 # Lint
-cargo clippy
+cargo clippy --workspace --all-targets
 cargo fmt --check
 ```
 
@@ -69,27 +83,37 @@ cargo fmt --check
 
 ## Testing
 
-Tests live alongside code in `#[cfg(test)] mod tests` blocks. Currently in `analyzer.rs`:
+Tests live alongside code in `#[cfg(test)] mod tests` blocks. 53 tests across both crates:
 
-- Unit tests for robots.txt parsing (user agents, paths, licenses)
-- RSL licence extraction (global, group-scoped, precedence, absolute URI validation)
-- TDM pattern matching (wildcards, end markers, complex patterns)
-- TDM rule evaluation (async tests with `#[tokio::test]`)
+**Core (35 tests)** — pure unit tests, no I/O:
+- `checks::robots` — user agent extraction, path parsing, allow/disallow
+- `checks::rsl` — global/group-scoped licences, precedence, absolute URI validation
+- `checks::content_signals` — signal parsing, group scoping, Cloudflare format
+- `checks::tdm` — pattern matching (wildcards, `$` end markers), rule evaluation
+- `checks::ai_bots` — wildcard blocking, selective blocking, bot count
+- `lib.rs` — integration tests via `PolicyAnalyzer::analyze()`
+
+**CLI (17 tests)** — server, fetcher, output, CSV:
+- `server` — health check, empty URLs, too-many-URLs validation
+- `fetcher` — URL construction for robots.txt and TDM endpoints
+- `output` — CSV headers, comma escaping, JSON round-trip
+- `analyzer` — CSV column detection, bare domain prefixing, empty row skipping
 
 When adding features:
 1. Write `#[test]` or `#[tokio::test]` in the relevant module
 2. Make it fail
 3. Implement until green
-4. `cargo clippy` + `cargo fmt`
+4. `cargo clippy --workspace --all-targets` + `cargo fmt`
 
 ## Standards Implemented
 
 | Standard | Status | Where |
 |----------|--------|-------|
-| RFC 9309 (Robots Exclusion Protocol) | Done | `analyzer.rs` via `texting_robots` |
-| RSL (Responsible Sourcing License) | Done | `analyzer.rs::extract_licenses()` |
-| W3C TDMRep | Done | `fetcher.rs::fetch_tdm_policy()`, `analyzer.rs::evaluate_tdm_policy()` |
-| AI Crawler Analysis | Done | `ai_crawlers.rs`, `analyzer.rs::analyze_ai_bots()` |
+| RFC 9309 (Robots Exclusion Protocol) | Done | `core::checks::robots` via `texting_robots` |
+| RSL (Responsible Sourcing License) | Done | `core::checks::rsl` |
+| Cloudflare Content Signals | Done | `core::checks::content_signals` |
+| W3C TDMRep | Done | `cli::fetcher` + `core::checks::tdm` |
+| AI Crawler Analysis | Done | `core::ai_crawlers` + `core::checks::ai_bots` |
 | RFC 9116 (security.txt) | Planned | — |
 | RFC 8615 (Well-Known URIs) | Planned | — |
 
