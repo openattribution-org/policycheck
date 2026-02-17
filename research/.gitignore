@@ -1,0 +1,10 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Output data
+output/
+
+# Override root *.csv ignore — prompts.csv is source data
+!prompts.csv
