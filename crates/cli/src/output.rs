@@ -1,7 +1,7 @@
-use policycheck_core::ai_crawlers::{AICrawler, BotStatus};
-use policycheck_core::models::{AnalysisResult, AnalysisStatus};
 use anyhow::Result;
 use comfy_table::{modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, *};
+use policycheck_core::ai_crawlers::{AICrawler, BotStatus};
+use policycheck_core::models::{AnalysisResult, AnalysisStatus};
 
 pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
     let mut table = Table::new();

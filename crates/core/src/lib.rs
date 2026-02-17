@@ -90,11 +90,7 @@ mod tests {
     #[test]
     fn test_analyze_basic() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
-        let result = analyzer.analyze(
-            "https://example.com",
-            "User-agent: *\nAllow: /\n",
-            None,
-        );
+        let result = analyzer.analyze("https://example.com", "User-agent: *\nAllow: /\n", None);
 
         assert!(matches!(result.status, AnalysisStatus::Success));
         assert!(result.is_path_allowed);

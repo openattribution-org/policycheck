@@ -150,7 +150,10 @@ License: https://example.com/gptbot.xml
         let result = extract(content, "*");
 
         assert_eq!(result.global_licenses.len(), 1);
-        assert_eq!(result.global_licenses[0], "https://example.com/absolute.xml");
+        assert_eq!(
+            result.global_licenses[0],
+            "https://example.com/absolute.xml"
+        );
     }
 
     #[test]
@@ -190,11 +193,21 @@ Disallow: /
         "#;
         let result = extract(content, "GPTBot");
 
-        assert_eq!(result.global_licenses.len(), 0, "Should have no global licenses");
-        assert_eq!(result.group_licenses.len(), 1, "Should have exactly 1 group license");
+        assert_eq!(
+            result.global_licenses.len(),
+            0,
+            "Should have no global licenses"
+        );
+        assert_eq!(
+            result.group_licenses.len(),
+            1,
+            "Should have exactly 1 group license"
+        );
         assert_eq!(result.group_licenses[0], "https://example.com/gpt-only.xml");
         assert!(
-            !result.group_licenses.contains(&"https://example.com/google-only.xml".to_string()),
+            !result
+                .group_licenses
+                .contains(&"https://example.com/google-only.xml".to_string()),
             "Should NOT include Googlebot's license"
         );
     }
@@ -210,9 +223,15 @@ Disallow:
         let result = extract(content, "*");
 
         assert_eq!(result.global_licenses.len(), 1);
-        assert_eq!(result.global_licenses[0], "https://rslcollective.org/royalty.xml");
+        assert_eq!(
+            result.global_licenses[0],
+            "https://rslcollective.org/royalty.xml"
+        );
         assert_eq!(result.group_licenses.len(), 0, "No group-scoped licenses");
-        assert_eq!(result.active_licenses[0], "https://rslcollective.org/royalty.xml");
+        assert_eq!(
+            result.active_licenses[0],
+            "https://rslcollective.org/royalty.xml"
+        );
     }
 
     #[test]
