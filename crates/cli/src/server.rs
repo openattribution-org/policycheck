@@ -18,6 +18,8 @@ pub struct AnalyzeRequest {
     pub urls: Vec<String>,
     #[serde(default = "default_user_agent")]
     pub user_agent: String,
+    #[serde(default)]
+    pub check_robots_meta: bool,
 }
 
 fn default_user_agent() -> String {
@@ -130,7 +132,8 @@ async fn analyze_handler(
         request.urls
     );
 
-    let analyzer = RobotAnalyzer::new(request.user_agent);
+    let analyzer =
+        RobotAnalyzer::new(request.user_agent).with_robots_meta(request.check_robots_meta);
     let results = analyzer.analyze_urls(&request.urls).await;
 
     let successful = results

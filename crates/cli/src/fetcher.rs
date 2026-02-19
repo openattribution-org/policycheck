@@ -87,6 +87,46 @@ impl RobotFetcher {
         Ok(tdm_url)
     }
 
+    /// Fetch a page's HTML and X-Robots-Tag headers for robots meta analysis.
+    ///
+    /// Returns (html_body, x_robots_tag_headers). Body is limited to 256KB.
+    pub async fn fetch_page_meta(&self, url: &str) -> Result<(String, Vec<String>)> {
+        let response = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .context("Failed to fetch page for robots meta")?;
+
+        if !response.status().is_success() {
+            anyhow::bail!(
+                "Page HTTP {} - {}",
+                response.status(),
+                response.status().canonical_reason().unwrap_or("Unknown")
+            );
+        }
+
+        // Collect X-Robots-Tag headers
+        let x_robots_headers: Vec<String> = response
+            .headers()
+            .get_all("x-robots-tag")
+            .iter()
+            .filter_map(|v| v.to_str().ok())
+            .map(|s| s.to_string())
+            .collect();
+
+        let body = response.text().await.context("Failed to read page body")?;
+
+        // Limit to 256KB
+        let html = if body.len() > 262_144 {
+            body[..262_144].to_string()
+        } else {
+            body
+        };
+
+        Ok((html, x_robots_headers))
+    }
+
     /// Fetch and parse TDM policy from /.well-known/tdmrep.json
     pub async fn fetch_tdm_policy(&self, base_url: &str) -> Result<Vec<TdmRule>> {
         let tdm_url = Self::get_tdm_url(base_url)?;

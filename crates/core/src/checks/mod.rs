@@ -10,5 +10,6 @@
 pub mod ai_bots;
 pub mod content_signals;
 pub mod robots;
+pub mod robots_meta;
 pub mod rsl;
 pub mod tdm;

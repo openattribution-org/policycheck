@@ -1,5 +1,13 @@
 use crate::ai_crawlers::BotStatus;
+use crate::checks::robots_meta::RobotsMetaResult;
 use serde::{Deserialize, Serialize};
+
+/// Input data for robots meta analysis (HTML body + X-Robots-Tag headers).
+#[derive(Debug, Clone)]
+pub struct RobotsMetaInput {
+    pub html: String,
+    pub x_robots_headers: Vec<String>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TdmRule {
@@ -44,6 +52,7 @@ pub struct AnalysisResult {
     pub content_signal_ai_train: Option<String>,
     pub tdm_policy: Option<TdmPolicy>,
     pub ai_bot_analysis: Vec<BotAnalysisResult>,
+    pub robots_meta: Option<RobotsMetaResult>,
     pub error: Option<String>,
 }
 
@@ -75,6 +84,7 @@ impl AnalysisResult {
             content_signal_ai_train: None,
             tdm_policy: None,
             ai_bot_analysis: vec![],
+            robots_meta: None,
             error: Some(error),
         }
     }

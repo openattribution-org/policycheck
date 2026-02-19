@@ -18,7 +18,7 @@ pub mod ai_crawlers;
 pub mod checks;
 pub mod models;
 
-use models::{AnalysisResult, AnalysisStatus, TdmRule};
+use models::{AnalysisResult, AnalysisStatus, RobotsMetaInput, TdmRule};
 
 /// Core policy analyzer. Takes raw content (no fetching) and produces analysis results.
 ///
@@ -26,7 +26,7 @@ use models::{AnalysisResult, AnalysisStatus, TdmRule};
 /// use policycheck_core::PolicyAnalyzer;
 ///
 /// let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
-/// let result = analyzer.analyze("https://example.com", "User-agent: *\nDisallow: /\n", None);
+/// let result = analyzer.analyze("https://example.com", "User-agent: *\nDisallow: /\n", None, None);
 /// assert!(!result.is_path_allowed);
 /// ```
 pub struct PolicyAnalyzer {
@@ -47,11 +47,15 @@ impl PolicyAnalyzer {
     ///
     /// `tdm_rules` is optional — pass pre-fetched `/.well-known/tdmrep.json` data
     /// if available, or `None` to skip TDM evaluation.
+    ///
+    /// `robots_meta_input` is optional — pass fetched HTML + X-Robots-Tag headers
+    /// to evaluate page-level robots directives, or `None` to skip.
     pub fn analyze(
         &self,
         url: &str,
         robots_txt: &str,
         tdm_rules: Option<Vec<TdmRule>>,
+        robots_meta_input: Option<RobotsMetaInput>,
     ) -> AnalysisResult {
         // Run each compliance check module
         let robots = checks::robots::analyze(robots_txt, &self.user_agent, url);
@@ -59,6 +63,10 @@ impl PolicyAnalyzer {
         let signals = checks::content_signals::extract(robots_txt, &self.user_agent);
         let tdm_policy = tdm_rules.and_then(|rules| checks::tdm::evaluate(url, rules));
         let ai_bot_analysis = checks::ai_bots::analyze(robots_txt, url);
+
+        let robots_meta = robots_meta_input.map(|input| {
+            checks::robots_meta::analyze(&input.html, &input.x_robots_headers, &self.user_agent)
+        });
 
         AnalysisResult {
             url: url.to_string(),
@@ -78,6 +86,7 @@ impl PolicyAnalyzer {
             content_signal_ai_train: signals.ai_train,
             tdm_policy,
             ai_bot_analysis,
+            robots_meta,
             error: None,
         }
     }
@@ -90,7 +99,12 @@ mod tests {
     #[test]
     fn test_analyze_basic() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
-        let result = analyzer.analyze("https://example.com", "User-agent: *\nAllow: /\n", None);
+        let result = analyzer.analyze(
+            "https://example.com",
+            "User-agent: *\nAllow: /\n",
+            None,
+            None,
+        );
 
         assert!(matches!(result.status, AnalysisStatus::Success));
         assert!(result.is_path_allowed);
@@ -101,7 +115,7 @@ mod tests {
     fn test_analyze_blocked() {
         let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
         let content = "User-agent: GPTBot\nDisallow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None);
+        let result = analyzer.analyze("https://example.com", content, None, None);
 
         assert!(!result.is_path_allowed);
     }
@@ -110,7 +124,7 @@ mod tests {
     fn test_analyze_with_rsl() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
         let content = "License: https://example.com/license.xml\nUser-agent: *\nAllow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None);
+        let result = analyzer.analyze("https://example.com", content, None, None);
 
         assert_eq!(result.global_licenses.len(), 1);
         assert_eq!(result.active_licenses.len(), 1);
@@ -120,7 +134,7 @@ mod tests {
     fn test_analyze_with_content_signals() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
         let content = "User-agent: *\nContent-Signal: search=yes, ai-train=no\nAllow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None);
+        let result = analyzer.analyze("https://example.com", content, None, None);
 
         assert_eq!(result.content_signal_search, Some("yes".to_string()));
         assert_eq!(result.content_signal_ai_train, Some("no".to_string()));
@@ -132,7 +146,7 @@ mod tests {
         let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
 
         // WHEN we analyze
-        let result = analyzer.analyze("https://www.nytimes.com", "", None);
+        let result = analyzer.analyze("https://www.nytimes.com", "", None, None);
 
         // SHOULD succeed with path allowed (empty robots.txt = no restrictions)
         assert!(matches!(result.status, AnalysisStatus::Success));
@@ -156,6 +170,7 @@ mod tests {
             "https://www.nytimes.com/article",
             "User-agent: *\nAllow: /\n",
             Some(tdm_rules),
+            None,
         );
 
         // SHOULD report TDM reserved
@@ -171,7 +186,7 @@ mod tests {
         let content = "User-agent: *\nDisallow: /search\n";
 
         // WHEN checking a URL with query params under /search
-        let result = analyzer.analyze("https://www.nytimes.com/search?q=test", content, None);
+        let result = analyzer.analyze("https://www.nytimes.com/search?q=test", content, None, None);
 
         // SHOULD be disallowed (path starts with /search)
         assert!(!result.is_path_allowed);

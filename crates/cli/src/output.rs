@@ -14,6 +14,7 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             "Path Allowed",
             "RSL Licenses",
             "TDM Reserved",
+            "Robots Meta",
             "AI Bots Summary",
         ]);
 
@@ -50,6 +51,24 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             "-"
         };
 
+        let robots_meta_str = match result.robots_meta {
+            Some(ref rm) => {
+                let mut parts = Vec::new();
+                if rm.is_noindex {
+                    parts.push("noindex");
+                }
+                if rm.is_nofollow {
+                    parts.push("nofollow");
+                }
+                if parts.is_empty() {
+                    "-".to_string()
+                } else {
+                    parts.join(", ")
+                }
+            }
+            None => "N/A".to_string(),
+        };
+
         // AI bot summary
         let blocked_count = result
             .ai_bot_analysis
@@ -74,6 +93,7 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             Cell::new(allowed_str),
             Cell::new(licenses_str),
             Cell::new(tdm_str),
+            Cell::new(robots_meta_str),
             Cell::new(ai_summary),
         ]);
     }
@@ -99,6 +119,8 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
         "Path Allowed".into(),
         "RSL Licenses".into(),
         "TDM Reserved".into(),
+        "Robots-Meta-NoIndex".into(),
+        "Robots-Meta-NoFollow".into(),
         "CS-Search".into(),
         "CS-AI-Input".into(),
         "CS-AI-Train".into(),
@@ -133,6 +155,16 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
             None => "N/A",
         };
         row.push(tdm_reserved.into());
+
+        let (noindex_str, nofollow_str) = match result.robots_meta {
+            Some(ref rm) => (
+                if rm.is_noindex { "Yes" } else { "No" },
+                if rm.is_nofollow { "Yes" } else { "No" },
+            ),
+            None => ("N/A", "N/A"),
+        };
+        row.push(noindex_str.into());
+        row.push(nofollow_str.into());
 
         row.push(
             result
@@ -303,6 +335,32 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
                     output.push_str(&format!("  📋 Total Rules: {}\n", tdm.rules.len()));
                 }
 
+                // Robots Meta (page-level directives)
+                if let Some(ref rm) = result.robots_meta {
+                    output.push_str("\nRobots Meta Directives:\n");
+                    if rm.is_noindex {
+                        output.push_str("  ✗ noindex\n");
+                    }
+                    if rm.is_nofollow {
+                        output.push_str("  ✗ nofollow\n");
+                    }
+                    if !rm.is_noindex && !rm.is_nofollow {
+                        output.push_str("  ✓ No restrictions\n");
+                    }
+                    for entry in &rm.entries {
+                        let source = match entry.source {
+                            policycheck_core::checks::robots_meta::RobotsMetaSource::MetaTag => {
+                                "meta tag"
+                            }
+                            policycheck_core::checks::robots_meta::RobotsMetaSource::HttpHeader => {
+                                "X-Robots-Tag"
+                            }
+                        };
+                        let bot = entry.bot_name.as_deref().unwrap_or("all");
+                        output.push_str(&format!("  {} ({}): {}\n", source, bot, entry.raw.trim()));
+                    }
+                }
+
                 // AI Bot Analysis
                 if !result.ai_bot_analysis.is_empty() {
                     output.push('\n');
@@ -404,6 +462,7 @@ mod tests {
             content_signal_ai_train: None,
             tdm_policy: None,
             ai_bot_analysis: vec![],
+            robots_meta: None,
             error: None,
         }
     }

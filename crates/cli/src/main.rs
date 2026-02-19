@@ -42,6 +42,10 @@ enum Commands {
         #[arg(short = 'a', long, default_value = "*")]
         user_agent: String,
 
+        /// Check page-level robots directives (meta tags and X-Robots-Tag headers)
+        #[arg(short, long)]
+        meta: bool,
+
         /// Output format
         #[arg(short, long, default_value = "table")]
         format: OutputFormat,
@@ -71,10 +75,11 @@ async fn main() -> Result<()> {
             url,
             csv,
             user_agent,
+            meta,
             format,
             output: output_path,
         } => {
-            let analyzer = RobotAnalyzer::new(user_agent);
+            let analyzer = RobotAnalyzer::new(user_agent).with_robots_meta(meta);
 
             // Collect URLs from both sources
             let mut urls = url;

@@ -1,12 +1,13 @@
 use crate::fetcher::RobotFetcher;
 use anyhow::Result;
-use policycheck_core::models::{AnalysisResult, AnalysisStatus};
+use policycheck_core::models::{AnalysisResult, AnalysisStatus, RobotsMetaInput};
 use policycheck_core::PolicyAnalyzer;
 
 /// Network-aware analyzer that wraps the core `PolicyAnalyzer` with HTTP fetching.
 pub struct RobotAnalyzer {
     core: PolicyAnalyzer,
     fetcher: RobotFetcher,
+    check_robots_meta: bool,
 }
 
 impl RobotAnalyzer {
@@ -14,6 +15,7 @@ impl RobotAnalyzer {
         Self {
             core: PolicyAnalyzer::new(user_agent),
             fetcher: RobotFetcher::new(),
+            check_robots_meta: false,
         }
     }
 
@@ -21,7 +23,13 @@ impl RobotAnalyzer {
         Self {
             core: PolicyAnalyzer::new(user_agent),
             fetcher,
+            check_robots_meta: false,
         }
+    }
+
+    pub fn with_robots_meta(mut self, enabled: bool) -> Self {
+        self.check_robots_meta = enabled;
+        self
     }
 
     /// Read URLs from a CSV file.
@@ -81,8 +89,24 @@ impl RobotAnalyzer {
         // Fetch TDM policy (optional — don't fail if missing)
         let tdm_rules = self.fetcher.fetch_tdm_policy(url).await.ok();
 
+        // Fetch page-level robots meta (optional — don't fail if missing)
+        let robots_meta_input = if self.check_robots_meta {
+            self.fetcher
+                .fetch_page_meta(url)
+                .await
+                .ok()
+                .map(|(html, headers)| RobotsMetaInput {
+                    html,
+                    x_robots_headers: headers,
+                })
+        } else {
+            None
+        };
+
         // Delegate to core analyzer
-        let mut result = self.core.analyze(url, &content, tdm_rules);
+        let mut result = self
+            .core
+            .analyze(url, &content, tdm_rules, robots_meta_input);
         result.robots_url = robots_url;
 
         result
@@ -97,9 +121,11 @@ impl RobotAnalyzer {
             let url_for_error = url.clone();
             let fetcher = self.fetcher.clone();
             let core_user_agent = self.core_user_agent();
+            let check_robots_meta = self.check_robots_meta;
 
             let handle = tokio::spawn(async move {
-                let analyzer = RobotAnalyzer::with_fetcher(core_user_agent, fetcher);
+                let analyzer = RobotAnalyzer::with_fetcher(core_user_agent, fetcher)
+                    .with_robots_meta(check_robots_meta);
                 analyzer.analyze_url(&url).await
             });
 
