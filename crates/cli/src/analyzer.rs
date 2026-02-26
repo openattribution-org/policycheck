@@ -86,8 +86,11 @@ impl RobotAnalyzer {
             }
         };
 
-        // Fetch TDM policy (optional — don't fail if missing)
-        let tdm_rules = self.fetcher.fetch_tdm_policy(url).await.ok();
+        // Fetch TDM policy and markdown probe concurrently (both optional)
+        let (tdm_rules, markdown_probe) = tokio::join!(
+            self.fetcher.fetch_tdm_policy(url),
+            self.fetcher.fetch_markdown_probe(url),
+        );
 
         // Fetch page-level robots meta (optional — don't fail if missing)
         let robots_meta_input = if self.check_robots_meta {
@@ -104,9 +107,13 @@ impl RobotAnalyzer {
         };
 
         // Delegate to core analyzer
-        let mut result = self
-            .core
-            .analyze(url, &content, tdm_rules, robots_meta_input);
+        let mut result = self.core.analyze(
+            url,
+            &content,
+            tdm_rules.ok(),
+            robots_meta_input,
+            markdown_probe,
+        );
         result.robots_url = robots_url;
 
         result

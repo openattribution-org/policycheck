@@ -18,6 +18,7 @@ pub mod ai_crawlers;
 pub mod checks;
 pub mod models;
 
+use checks::markdown_agents::MarkdownProbeData;
 use models::{AnalysisResult, AnalysisStatus, RobotsMetaInput, TdmRule};
 
 /// Core policy analyzer. Takes raw content (no fetching) and produces analysis results.
@@ -26,7 +27,7 @@ use models::{AnalysisResult, AnalysisStatus, RobotsMetaInput, TdmRule};
 /// use policycheck_core::PolicyAnalyzer;
 ///
 /// let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
-/// let result = analyzer.analyze("https://example.com", "User-agent: *\nDisallow: /\n", None, None);
+/// let result = analyzer.analyze("https://example.com", "User-agent: *\nDisallow: /\n", None, None, None);
 /// assert!(!result.is_path_allowed);
 /// ```
 pub struct PolicyAnalyzer {
@@ -50,12 +51,16 @@ impl PolicyAnalyzer {
     ///
     /// `robots_meta_input` is optional — pass fetched HTML + X-Robots-Tag headers
     /// to evaluate page-level robots directives, or `None` to skip.
+    ///
+    /// `markdown_probe` is optional — pass pre-fetched Markdown for Agents probe
+    /// data if available, or `None` to skip that check.
     pub fn analyze(
         &self,
         url: &str,
         robots_txt: &str,
         tdm_rules: Option<Vec<TdmRule>>,
         robots_meta_input: Option<RobotsMetaInput>,
+        markdown_probe: Option<MarkdownProbeData>,
     ) -> AnalysisResult {
         // Run each compliance check module
         let robots = checks::robots::analyze(robots_txt, &self.user_agent, url);
@@ -63,6 +68,8 @@ impl PolicyAnalyzer {
         let signals = checks::content_signals::extract(robots_txt, &self.user_agent);
         let tdm_policy = tdm_rules.and_then(|rules| checks::tdm::evaluate(url, rules));
         let ai_bot_analysis = checks::ai_bots::analyze(robots_txt, url);
+        let markdown_agents =
+            markdown_probe.map(|probe| checks::markdown_agents::evaluate(&probe));
 
         let robots_meta = robots_meta_input.map(|input| {
             checks::robots_meta::analyze(&input.html, &input.x_robots_headers, &self.user_agent)
@@ -87,6 +94,7 @@ impl PolicyAnalyzer {
             tdm_policy,
             ai_bot_analysis,
             robots_meta,
+            markdown_agents,
             error: None,
         }
     }
@@ -95,6 +103,7 @@ impl PolicyAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use checks::markdown_agents::MarkdownProbeData;
 
     #[test]
     fn test_analyze_basic() {
@@ -102,6 +111,7 @@ mod tests {
         let result = analyzer.analyze(
             "https://example.com",
             "User-agent: *\nAllow: /\n",
+            None,
             None,
             None,
         );
@@ -115,7 +125,7 @@ mod tests {
     fn test_analyze_blocked() {
         let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
         let content = "User-agent: GPTBot\nDisallow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None, None);
+        let result = analyzer.analyze("https://example.com", content, None, None, None);
 
         assert!(!result.is_path_allowed);
     }
@@ -124,7 +134,7 @@ mod tests {
     fn test_analyze_with_rsl() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
         let content = "License: https://example.com/license.xml\nUser-agent: *\nAllow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None, None);
+        let result = analyzer.analyze("https://example.com", content, None, None, None);
 
         assert_eq!(result.global_licenses.len(), 1);
         assert_eq!(result.active_licenses.len(), 1);
@@ -134,7 +144,7 @@ mod tests {
     fn test_analyze_with_content_signals() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
         let content = "User-agent: *\nContent-Signal: search=yes, ai-train=no\nAllow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None, None);
+        let result = analyzer.analyze("https://example.com", content, None, None, None);
 
         assert_eq!(result.content_signal_search, Some("yes".to_string()));
         assert_eq!(result.content_signal_ai_train, Some("no".to_string()));
@@ -146,7 +156,7 @@ mod tests {
         let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
 
         // WHEN we analyze
-        let result = analyzer.analyze("https://www.nytimes.com", "", None, None);
+        let result = analyzer.analyze("https://www.nytimes.com", "", None, None, None);
 
         // SHOULD succeed with path allowed (empty robots.txt = no restrictions)
         assert!(matches!(result.status, AnalysisStatus::Success));
@@ -171,6 +181,7 @@ mod tests {
             "User-agent: *\nAllow: /\n",
             Some(tdm_rules),
             None,
+            None,
         );
 
         // SHOULD report TDM reserved
@@ -186,9 +197,65 @@ mod tests {
         let content = "User-agent: *\nDisallow: /search\n";
 
         // WHEN checking a URL with query params under /search
-        let result = analyzer.analyze("https://www.nytimes.com/search?q=test", content, None, None);
+        let result = analyzer.analyze(
+            "https://www.nytimes.com/search?q=test",
+            content,
+            None,
+            None,
+            None,
+        );
 
         // SHOULD be disallowed (path starts with /search)
         assert!(!result.is_path_allowed);
+    }
+
+    #[test]
+    fn test_analyze_with_markdown_probe_supported() {
+        // GIVEN robots.txt and a markdown probe indicating support
+        let analyzer = PolicyAnalyzer::new("*".to_string());
+        let probe = MarkdownProbeData {
+            status_code: 200,
+            content_type: Some("text/markdown; charset=utf-8".to_string()),
+            markdown_tokens: Some("3500".to_string()),
+            content_signal: Some("search=allow, ai-input=allow, ai-train=disallow".to_string()),
+        };
+
+        // WHEN we analyze with the probe
+        let result = analyzer.analyze(
+            "https://example.com",
+            "User-agent: *\nAllow: /\n",
+            None,
+            None,
+            Some(probe),
+        );
+
+        // SHOULD include markdown agents result
+        let md = result.markdown_agents.unwrap();
+        assert!(md.supported);
+        assert_eq!(md.token_count, Some(3500));
+        assert_eq!(md.http_content_signal_search, Some("allow".to_string()));
+        assert_eq!(md.http_content_signal_ai_input, Some("allow".to_string()));
+        assert_eq!(
+            md.http_content_signal_ai_train,
+            Some("disallow".to_string())
+        );
+    }
+
+    #[test]
+    fn test_analyze_without_markdown_probe_returns_none() {
+        // GIVEN no markdown probe data
+        let analyzer = PolicyAnalyzer::new("*".to_string());
+
+        // WHEN we analyze without probe
+        let result = analyzer.analyze(
+            "https://example.com",
+            "User-agent: *\nAllow: /\n",
+            None,
+            None,
+            None,
+        );
+
+        // SHOULD have no markdown agents result
+        assert!(result.markdown_agents.is_none());
     }
 }

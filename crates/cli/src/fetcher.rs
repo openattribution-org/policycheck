@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use policycheck_core::checks::markdown_agents::MarkdownProbeData;
 use policycheck_core::models::TdmRule;
 use std::time::Duration;
 use url::Url;
@@ -155,6 +156,56 @@ impl RobotFetcher {
             serde_json::from_str(&content).context("Failed to parse tdmrep.json")?;
 
         Ok(rules)
+    }
+
+    /// Probe a URL for Cloudflare "Markdown for Agents" support.
+    ///
+    /// Sends a HEAD request with `Accept: text/markdown` and extracts
+    /// `Content-Type`, `x-markdown-tokens`, and `Content-Signal` headers.
+    /// Returns `None` on any network or parsing failure.
+    pub async fn fetch_markdown_probe(&self, base_url: &str) -> Option<MarkdownProbeData> {
+        let markdown_client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(5))
+            .user_agent(format!(
+                "Mozilla/5.0 (compatible; PolicyCheck/{}; +https://github.com/openattribution-org/policycheck)",
+                env!("CARGO_PKG_VERSION")
+            ))
+            .build()
+            .ok()?;
+
+        let response = markdown_client
+            .head(base_url)
+            .header("Accept", "text/markdown")
+            .send()
+            .await
+            .ok()?;
+
+        let status_code = response.status().as_u16();
+
+        let content_type = response
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+
+        let markdown_tokens = response
+            .headers()
+            .get("x-markdown-tokens")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+
+        let content_signal = response
+            .headers()
+            .get("content-signal")
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+
+        Some(MarkdownProbeData {
+            status_code,
+            content_type,
+            markdown_tokens,
+            content_signal,
+        })
     }
 }
 

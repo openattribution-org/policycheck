@@ -1,4 +1,5 @@
 use crate::ai_crawlers::BotStatus;
+use crate::checks::markdown_agents::MarkdownAgentsResult;
 use crate::checks::robots_meta::RobotsMetaResult;
 use serde::{Deserialize, Serialize};
 
@@ -53,6 +54,7 @@ pub struct AnalysisResult {
     pub tdm_policy: Option<TdmPolicy>,
     pub ai_bot_analysis: Vec<BotAnalysisResult>,
     pub robots_meta: Option<RobotsMetaResult>,
+    pub markdown_agents: Option<MarkdownAgentsResult>,
     pub error: Option<String>,
 }
 
@@ -85,6 +87,7 @@ impl AnalysisResult {
             tdm_policy: None,
             ai_bot_analysis: vec![],
             robots_meta: None,
+            markdown_agents: None,
             error: Some(error),
         }
     }

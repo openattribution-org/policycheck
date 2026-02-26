@@ -15,6 +15,7 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             "RSL Licenses",
             "TDM Reserved",
             "Robots Meta",
+            "Markdown",
             "AI Bots Summary",
         ]);
 
@@ -69,6 +70,16 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             None => "N/A".to_string(),
         };
 
+        let markdown_str = if let Some(ref md) = result.markdown_agents {
+            if md.supported {
+                "✓ Yes"
+            } else {
+                "✗ No"
+            }
+        } else {
+            "-"
+        };
+
         // AI bot summary
         let blocked_count = result
             .ai_bot_analysis
@@ -94,6 +105,7 @@ pub fn format_table(results: &[AnalysisResult]) -> Result<String> {
             Cell::new(licenses_str),
             Cell::new(tdm_str),
             Cell::new(robots_meta_str),
+            Cell::new(markdown_str),
             Cell::new(ai_summary),
         ]);
     }
@@ -124,6 +136,11 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
         "CS-Search".into(),
         "CS-AI-Input".into(),
         "CS-AI-Train".into(),
+        "Markdown".into(),
+        "Markdown Tokens".into(),
+        "MD-CS-Search".into(),
+        "MD-CS-AI-Input".into(),
+        "MD-CS-AI-Train".into(),
     ];
     for bot in &major_bots {
         headers.push(bot.name.clone());
@@ -187,6 +204,40 @@ pub fn format_csv(results: &[AnalysisResult]) -> Result<String> {
                 .unwrap_or("unspecified")
                 .into(),
         );
+
+        // Markdown for Agents columns
+        if let Some(ref md) = result.markdown_agents {
+            row.push(if md.supported { "Yes" } else { "No" }.into());
+            row.push(
+                md.token_count
+                    .map(|c| c.to_string())
+                    .unwrap_or_else(|| "N/A".into()),
+            );
+            row.push(
+                md.http_content_signal_search
+                    .as_deref()
+                    .unwrap_or("unspecified")
+                    .into(),
+            );
+            row.push(
+                md.http_content_signal_ai_input
+                    .as_deref()
+                    .unwrap_or("unspecified")
+                    .into(),
+            );
+            row.push(
+                md.http_content_signal_ai_train
+                    .as_deref()
+                    .unwrap_or("unspecified")
+                    .into(),
+            );
+        } else {
+            row.push("N/A".into());
+            row.push("N/A".into());
+            row.push("N/A".into());
+            row.push("N/A".into());
+            row.push("N/A".into());
+        }
 
         for major_bot in &major_bots {
             let bot_status = result
@@ -309,6 +360,36 @@ pub fn format_compact(results: &[AnalysisResult]) -> Result<String> {
                     if let Some(ref ai_train) = result.content_signal_ai_train {
                         let icon = if ai_train == "yes" { "✓" } else { "✗" };
                         output.push_str(&format!("  {} ai-train: {}\n", icon, ai_train));
+                    }
+                    output.push('\n');
+                }
+
+                // Markdown for Agents
+                if let Some(ref md) = result.markdown_agents {
+                    output.push_str("Markdown for Agents:\n");
+                    let icon = if md.supported { "✓" } else { "✗" };
+                    output.push_str(&format!(
+                        "  {} Supported: {}\n",
+                        icon,
+                        if md.supported { "Yes" } else { "No" }
+                    ));
+                    if let Some(tokens) = md.token_count {
+                        output.push_str(&format!("  📊 Token Count: {}\n", tokens));
+                    }
+                    if md.http_content_signal_search.is_some()
+                        || md.http_content_signal_ai_input.is_some()
+                        || md.http_content_signal_ai_train.is_some()
+                    {
+                        output.push_str("  HTTP Content Signals:\n");
+                        if let Some(ref search) = md.http_content_signal_search {
+                            output.push_str(&format!("    search: {}\n", search));
+                        }
+                        if let Some(ref ai_input) = md.http_content_signal_ai_input {
+                            output.push_str(&format!("    ai-input: {}\n", ai_input));
+                        }
+                        if let Some(ref ai_train) = md.http_content_signal_ai_train {
+                            output.push_str(&format!("    ai-train: {}\n", ai_train));
+                        }
                     }
                     output.push('\n');
                 }
@@ -463,6 +544,7 @@ mod tests {
             tdm_policy: None,
             ai_bot_analysis: vec![],
             robots_meta: None,
+            markdown_agents: None,
             error: None,
         }
     }
@@ -475,6 +557,8 @@ mod tests {
         assert!(header_line.contains("URL"));
         assert!(header_line.contains("GPTBot"));
         assert!(header_line.contains("ClaudeBot"));
+        assert!(header_line.contains("Markdown"));
+        assert!(header_line.contains("Markdown Tokens"));
         assert!(header_line.contains("All User Agents"));
     }
 
