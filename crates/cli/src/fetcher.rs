@@ -160,8 +160,10 @@ impl RobotFetcher {
 
     /// Probe a URL for Cloudflare "Markdown for Agents" support.
     ///
-    /// Sends a HEAD request with `Accept: text/markdown` and extracts
+    /// Sends a GET request with `Accept: text/markdown` and extracts
     /// `Content-Type`, `x-markdown-tokens`, and `Content-Signal` headers.
+    /// Must be GET, not HEAD — Cloudflare only transforms the body (and
+    /// sets markdown headers) on GET requests.
     /// Returns `None` on any network or parsing failure.
     pub async fn fetch_markdown_probe(&self, base_url: &str) -> Option<MarkdownProbeData> {
         let markdown_client = reqwest::Client::builder()
@@ -174,7 +176,7 @@ impl RobotFetcher {
             .ok()?;
 
         let response = markdown_client
-            .head(base_url)
+            .get(base_url)
             .header("Accept", "text/markdown")
             .send()
             .await
