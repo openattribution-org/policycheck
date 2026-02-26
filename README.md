@@ -2,7 +2,7 @@
 
 **Web Attribution and Compliance Scanner**
 
-A fast, portable tool for checking web scraping compliance across robots.txt, RSL licenses, and TDM policies. Built with Rust for the [OpenAttribution](https://openattribution.org) initiative.
+A fast, portable tool for checking web scraping compliance across robots.txt, RSL licenses, TDM policies, and Cloudflare Markdown for Agents. Built with Rust for the [OpenAttribution](https://openattribution.org) initiative.
 
 [![CI](https://github.com/openattribution-org/policycheck/actions/workflows/ci.yml/badge.svg)](https://github.com/openattribution-org/policycheck/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/policycheck.svg)](https://crates.io/crates/policycheck)
@@ -18,6 +18,7 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 - 📜 **RSL Licenses** - Required licensing terms (Responsible Sourcing License)
 - 🎯 **Content Signals** - AI usage preferences (Cloudflare's policy framework)
 - 🤖 **TDM Policies** - Text & Data Mining permissions (W3C TDMRep)
+- 📝 **Markdown for Agents** - Cloudflare edge markdown delivery detection
 - 🔒 **Privacy Controls** - DNT, GPC signals (coming soon)
 - 📧 **Security Contacts** - Who to contact about scraping (coming soon)
 
@@ -30,6 +31,7 @@ PolicyCheck helps you **scrape responsibly** by checking multiple compliance sig
 - 📦 **Portable** - Single binary, no dependencies
 - 🔍 **Comprehensive** - User agents, crawl delays, sitemaps, paths, licenses
 - 📜 **RSL License Detection** - Automatically finds Responsible Sourcing Licenses
+- 📝 **Markdown for Agents** - Detect Cloudflare's edge markdown delivery and Content-Signal HTTP headers
 - 📈 **Multiple Formats** - Table, JSON, CSV, or compact text output
 - 🌐 **HTTP API** - Run as a service for integration
 - 📝 **CSV Batch Processing** - Analyze thousands of URLs concurrently
@@ -85,7 +87,8 @@ let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
 let result = analyzer.analyze(
     "https://www.nytimes.com",
     "User-agent: GPTBot\nDisallow: /\n",
-    None,
+    None,  // TDM rules
+    None,  // Markdown probe data
 );
 assert!(!result.is_path_allowed);
 ```
@@ -304,6 +307,58 @@ Cloudflare's blog permits all AI usage:
 - `ai-train=yes` - Allowed for model training
 
 For more information, see [Cloudflare's Content Signals announcement](https://blog.cloudflare.com/content-signals-policy).
+
+## Markdown for Agents (Cloudflare)
+
+PolicyCheck detects whether a site supports Cloudflare's **Markdown for Agents** feature. When enabled, Cloudflare converts HTML to clean markdown at the edge when an AI system sends `Accept: text/markdown`.
+
+### What it detects
+
+- Whether the site returns `Content-Type: text/markdown` (supported)
+- Token count from the `x-markdown-tokens` response header
+- Per-response licence signals from the `Content-Signal` HTTP header
+
+### How it works
+
+PolicyCheck sends a GET request with `Accept: text/markdown` to the target URL. If Cloudflare's feature is enabled, the response comes back as markdown with additional headers. This probe runs concurrently with robots.txt and TDM fetches.
+
+**Note:** This is different from robots.txt Content Signals. Robots.txt signals are declared in a text file. Markdown for Agents Content-Signal is an HTTP response header returned with the converted content.
+
+### Example Output
+
+**Compact format:**
+```
+Markdown for Agents:
+  ✓ Supported: Yes
+  📊 Token Count: 6960
+  HTTP Content Signals:
+    search: yes
+    ai-input: yes
+    ai-train: yes
+```
+
+**JSON format:**
+```json
+{
+  "markdown_agents": {
+    "supported": true,
+    "token_count": 6960,
+    "http_content_signal_search": "yes",
+    "http_content_signal_ai_input": "yes",
+    "http_content_signal_ai_train": "yes"
+  }
+}
+```
+
+**CSV format** includes columns: `Markdown`, `Markdown Tokens`, `MD-CS-Search`, `MD-CS-AI-Input`, `MD-CS-AI-Train`
+
+### Real-World Example
+
+```bash
+policycheck analyze --url https://blog.cloudflare.com --format compact
+```
+
+Cloudflare's blog supports Markdown for Agents with all signals permitted. Available on Cloudflare Pro+ plans (~20% of the web is behind Cloudflare).
 
 ## Output Formats
 
@@ -734,6 +789,7 @@ podman-compose up -d
 - [x] Multiple output formats
 - [x] TDM (Text & Data Mining) policy detection (`/.well-known/tdmrep.json`)
 - [x] Content Signals (Cloudflare AI policy framework)
+- [x] Markdown for Agents detection (Cloudflare edge markdown delivery)
 
 ### 🚧 In Progress
 - [ ] Security contact discovery (`/.well-known/security.txt`)
@@ -820,6 +876,7 @@ PolicyCheck implements the following standards:
 - ✅ **RSL Standard**: Responsible Sourcing License
 - ✅ **Content Signals**: Cloudflare's AI Policy Framework (CC0 License)
 - ✅ **W3C TDMRep**: Text and Data Mining Reservation Protocol
+- ✅ **Markdown for Agents**: Cloudflare edge markdown delivery and Content-Signal HTTP headers
 - 🚧 **RFC 9116**: security.txt (planned)
 - 🚧 **RFC 8615**: Well-Known URIs (planned)
 
