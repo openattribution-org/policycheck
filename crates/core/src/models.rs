@@ -1,6 +1,7 @@
 use crate::ai_crawlers::BotStatus;
 use crate::checks::markdown_agents::MarkdownAgentsResult;
 use crate::checks::robots_meta::RobotsMetaResult;
+use crate::checks::well_known_oa::WellKnownOaResult;
 use serde::{Deserialize, Serialize};
 
 /// Input data for robots meta analysis (HTML body + X-Robots-Tag headers).
@@ -55,6 +56,7 @@ pub struct AnalysisResult {
     pub ai_bot_analysis: Vec<BotAnalysisResult>,
     pub robots_meta: Option<RobotsMetaResult>,
     pub markdown_agents: Option<MarkdownAgentsResult>,
+    pub well_known_oa: Option<WellKnownOaResult>,
     pub error: Option<String>,
 }
 
@@ -88,6 +90,7 @@ impl AnalysisResult {
             ai_bot_analysis: vec![],
             robots_meta: None,
             markdown_agents: None,
+            well_known_oa: None,
             error: Some(error),
         }
     }

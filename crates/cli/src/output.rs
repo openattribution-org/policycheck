@@ -545,6 +545,7 @@ mod tests {
             ai_bot_analysis: vec![],
             robots_meta: None,
             markdown_agents: None,
+            well_known_oa: None,
             error: None,
         }
     }

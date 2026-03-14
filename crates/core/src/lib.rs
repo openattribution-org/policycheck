@@ -27,7 +27,7 @@ use models::{AnalysisResult, AnalysisStatus, RobotsMetaInput, TdmRule};
 /// use policycheck_core::PolicyAnalyzer;
 ///
 /// let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
-/// let result = analyzer.analyze("https://example.com", "User-agent: *\nDisallow: /\n", None, None, None);
+/// let result = analyzer.analyze("https://example.com", "User-agent: *\nDisallow: /\n", None, None, None, None);
 /// assert!(!result.is_path_allowed);
 /// ```
 pub struct PolicyAnalyzer {
@@ -54,6 +54,9 @@ impl PolicyAnalyzer {
     ///
     /// `markdown_probe` is optional — pass pre-fetched Markdown for Agents probe
     /// data if available, or `None` to skip that check.
+    ///
+    /// `well_known_oa` is optional — pass pre-fetched `/.well-known/openattribution.json`
+    /// content if available, or `None` to skip that check.
     pub fn analyze(
         &self,
         url: &str,
@@ -61,6 +64,7 @@ impl PolicyAnalyzer {
         tdm_rules: Option<Vec<TdmRule>>,
         robots_meta_input: Option<RobotsMetaInput>,
         markdown_probe: Option<MarkdownProbeData>,
+        well_known_oa: Option<&str>,
     ) -> AnalysisResult {
         // Run each compliance check module
         let robots = checks::robots::analyze(robots_txt, &self.user_agent, url);
@@ -74,6 +78,8 @@ impl PolicyAnalyzer {
         let robots_meta = robots_meta_input.map(|input| {
             checks::robots_meta::analyze(&input.html, &input.x_robots_headers, &self.user_agent)
         });
+
+        let well_known_oa_result = well_known_oa.map(checks::well_known_oa::evaluate);
 
         AnalysisResult {
             url: url.to_string(),
@@ -95,6 +101,7 @@ impl PolicyAnalyzer {
             ai_bot_analysis,
             robots_meta,
             markdown_agents,
+            well_known_oa: well_known_oa_result,
             error: None,
         }
     }
@@ -114,6 +121,7 @@ mod tests {
             None,
             None,
             None,
+            None,
         );
 
         assert!(matches!(result.status, AnalysisStatus::Success));
@@ -125,7 +133,7 @@ mod tests {
     fn test_analyze_blocked() {
         let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
         let content = "User-agent: GPTBot\nDisallow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None, None, None);
+        let result = analyzer.analyze("https://example.com", content, None, None, None, None);
 
         assert!(!result.is_path_allowed);
     }
@@ -134,7 +142,7 @@ mod tests {
     fn test_analyze_with_rsl() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
         let content = "License: https://example.com/license.xml\nUser-agent: *\nAllow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None, None, None);
+        let result = analyzer.analyze("https://example.com", content, None, None, None, None);
 
         assert_eq!(result.global_licenses.len(), 1);
         assert_eq!(result.active_licenses.len(), 1);
@@ -144,7 +152,7 @@ mod tests {
     fn test_analyze_with_content_signals() {
         let analyzer = PolicyAnalyzer::new("*".to_string());
         let content = "User-agent: *\nContent-Signal: search=yes, ai-train=no\nAllow: /\n";
-        let result = analyzer.analyze("https://example.com", content, None, None, None);
+        let result = analyzer.analyze("https://example.com", content, None, None, None, None);
 
         assert_eq!(result.content_signal_search, Some("yes".to_string()));
         assert_eq!(result.content_signal_ai_train, Some("no".to_string()));
@@ -156,7 +164,7 @@ mod tests {
         let analyzer = PolicyAnalyzer::new("GPTBot".to_string());
 
         // WHEN we analyze
-        let result = analyzer.analyze("https://www.nytimes.com", "", None, None, None);
+        let result = analyzer.analyze("https://www.nytimes.com", "", None, None, None, None);
 
         // SHOULD succeed with path allowed (empty robots.txt = no restrictions)
         assert!(matches!(result.status, AnalysisStatus::Success));
@@ -182,6 +190,7 @@ mod tests {
             Some(tdm_rules),
             None,
             None,
+            None,
         );
 
         // SHOULD report TDM reserved
@@ -200,6 +209,7 @@ mod tests {
         let result = analyzer.analyze(
             "https://www.nytimes.com/search?q=test",
             content,
+            None,
             None,
             None,
             None,
@@ -227,6 +237,7 @@ mod tests {
             None,
             None,
             Some(probe),
+            None,
         );
 
         // SHOULD include markdown agents result
@@ -250,6 +261,7 @@ mod tests {
         let result = analyzer.analyze(
             "https://example.com",
             "User-agent: *\nAllow: /\n",
+            None,
             None,
             None,
             None,

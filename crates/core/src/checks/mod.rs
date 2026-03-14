@@ -14,3 +14,4 @@ pub mod robots;
 pub mod robots_meta;
 pub mod rsl;
 pub mod tdm;
+pub mod well_known_oa;

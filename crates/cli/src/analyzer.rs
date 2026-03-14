@@ -86,10 +86,11 @@ impl RobotAnalyzer {
             }
         };
 
-        // Fetch TDM policy and markdown probe concurrently (both optional)
-        let (tdm_rules, markdown_probe) = tokio::join!(
+        // Fetch optional checks concurrently
+        let (tdm_rules, markdown_probe, well_known_oa) = tokio::join!(
             self.fetcher.fetch_tdm_policy(url),
             self.fetcher.fetch_markdown_probe(url),
+            self.fetcher.fetch_well_known_oa(url),
         );
 
         // Fetch page-level robots meta (optional — don't fail if missing)
@@ -113,6 +114,7 @@ impl RobotAnalyzer {
             tdm_rules.ok(),
             robots_meta_input,
             markdown_probe,
+            well_known_oa.as_deref(),
         );
         result.robots_url = robots_url;
 

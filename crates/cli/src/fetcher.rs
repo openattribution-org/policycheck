@@ -209,6 +209,50 @@ impl RobotFetcher {
             content_signal,
         })
     }
+    /// Get the OpenAttribution well-known URL for a given base URL.
+    pub fn get_well_known_oa_url(base_url: &str) -> Result<String> {
+        let parsed = Url::parse(base_url).context("Invalid URL")?;
+        let host = parsed.host_str().context("URL has no host")?;
+
+        let oa_url = match parsed.port() {
+            Some(port) => format!(
+                "{}://{}:{}/.well-known/openattribution.json",
+                parsed.scheme(),
+                host,
+                port
+            ),
+            None => format!(
+                "{}://{}/.well-known/openattribution.json",
+                parsed.scheme(),
+                host
+            ),
+        };
+
+        Ok(oa_url)
+    }
+
+    /// Fetch `/.well-known/openattribution.json` content.
+    ///
+    /// Returns `None` on any failure (404, timeout, etc.) — a missing file
+    /// is a normal condition, not an error.
+    pub async fn fetch_well_known_oa(&self, base_url: &str) -> Option<String> {
+        let oa_url = Self::get_well_known_oa_url(base_url).ok()?;
+
+        let response = self.client.get(&oa_url).send().await.ok()?;
+
+        if !response.status().is_success() {
+            return None;
+        }
+
+        let content = response.text().await.ok()?;
+
+        // Limit to 64KB (should be a tiny JSON file)
+        if content.len() > 65_536 {
+            return None;
+        }
+
+        Some(content)
+    }
 }
 
 impl Default for RobotFetcher {
@@ -265,5 +309,28 @@ mod tests {
     #[test]
     fn test_get_tdm_url_invalid() {
         assert!(RobotFetcher::get_tdm_url("not-a-url").is_err());
+    }
+
+    #[test]
+    fn test_get_well_known_oa_url_standard() {
+        let url = RobotFetcher::get_well_known_oa_url("https://openattribution.org").unwrap();
+        assert_eq!(
+            url,
+            "https://openattribution.org/.well-known/openattribution.json"
+        );
+    }
+
+    #[test]
+    fn test_get_well_known_oa_url_with_port() {
+        let url = RobotFetcher::get_well_known_oa_url("https://localhost:3000/page").unwrap();
+        assert_eq!(
+            url,
+            "https://localhost:3000/.well-known/openattribution.json"
+        );
+    }
+
+    #[test]
+    fn test_get_well_known_oa_url_invalid() {
+        assert!(RobotFetcher::get_well_known_oa_url("not-a-url").is_err());
     }
 }
