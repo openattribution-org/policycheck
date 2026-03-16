@@ -58,6 +58,7 @@ impl PolicyAnalyzer {
     ///
     /// `well_known_oa` is optional — pass pre-fetched `/.well-known/openattribution.json`
     /// content if available, or `None` to skip that check.
+    #[allow(clippy::too_many_arguments)]
     pub fn analyze(
         &self,
         url: &str,
