@@ -59,9 +59,7 @@ pub fn evaluate(probe: &MarkdownProbeData) -> MarkdownAgentsResult {
 /// Parse a `Content-Signal` HTTP header value.
 ///
 /// Format: `key=value, key=value` (e.g. `ai-train=disallow, search=allow, ai-input=allow`).
-fn parse_content_signal(
-    header: Option<&str>,
-) -> (Option<String>, Option<String>, Option<String>) {
+fn parse_content_signal(header: Option<&str>) -> (Option<String>, Option<String>, Option<String>) {
     let Some(header) = header else {
         return (None, None, None);
     };
@@ -161,10 +159,7 @@ mod tests {
 
         // SHOULD parse present signals and leave missing ones as None
         assert!(result.supported);
-        assert_eq!(
-            result.http_content_signal_search,
-            Some("allow".to_string())
-        );
+        assert_eq!(result.http_content_signal_search, Some("allow".to_string()));
         assert_eq!(result.http_content_signal_ai_input, None);
         assert_eq!(
             result.http_content_signal_ai_train,
@@ -179,9 +174,7 @@ mod tests {
             status_code: 200,
             content_type: Some("text/markdown".to_string()),
             markdown_tokens: Some("2500".to_string()),
-            content_signal: Some(
-                "ai-train=disallow, search=allow, ai-input=allow".to_string(),
-            ),
+            content_signal: Some("ai-train=disallow, search=allow, ai-input=allow".to_string()),
         };
 
         // WHEN we evaluate
@@ -190,10 +183,7 @@ mod tests {
         // SHOULD parse all three signals correctly
         assert!(result.supported);
         assert_eq!(result.token_count, Some(2500));
-        assert_eq!(
-            result.http_content_signal_search,
-            Some("allow".to_string())
-        );
+        assert_eq!(result.http_content_signal_search, Some("allow".to_string()));
         assert_eq!(
             result.http_content_signal_ai_input,
             Some("allow".to_string())

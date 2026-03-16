@@ -192,7 +192,10 @@ impl RobotFetcher {
         let headers = response.headers();
 
         let header = |name: &str| -> Option<String> {
-            headers.get(name).and_then(|v| v.to_str().ok()).map(String::from)
+            headers
+                .get(name)
+                .and_then(|v| v.to_str().ok())
+                .map(String::from)
         };
 
         let markdown = MarkdownProbeData {

@@ -74,8 +74,7 @@ impl PolicyAnalyzer {
         let signals = checks::content_signals::extract(robots_txt, &self.user_agent);
         let tdm_policy = tdm_rules.and_then(|rules| checks::tdm::evaluate(url, rules));
         let ai_bot_analysis = checks::ai_bots::analyze(robots_txt, url);
-        let markdown_agents =
-            markdown_probe.map(|probe| checks::markdown_agents::evaluate(&probe));
+        let markdown_agents = markdown_probe.map(|probe| checks::markdown_agents::evaluate(&probe));
 
         let robots_meta = robots_meta_input.map(|input| {
             checks::robots_meta::analyze(&input.html, &input.x_robots_headers, &self.user_agent)
