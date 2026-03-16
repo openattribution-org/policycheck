@@ -9,6 +9,7 @@
 
 pub mod ai_bots;
 pub mod content_signals;
+pub mod infrastructure;
 pub mod markdown_agents;
 pub mod robots;
 pub mod robots_meta;

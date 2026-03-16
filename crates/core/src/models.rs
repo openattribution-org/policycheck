@@ -1,4 +1,5 @@
 use crate::ai_crawlers::BotStatus;
+use crate::checks::infrastructure::InfraDetection;
 use crate::checks::markdown_agents::MarkdownAgentsResult;
 use crate::checks::robots_meta::RobotsMetaResult;
 use crate::checks::well_known_oa::WellKnownOaResult;
@@ -57,6 +58,7 @@ pub struct AnalysisResult {
     pub robots_meta: Option<RobotsMetaResult>,
     pub markdown_agents: Option<MarkdownAgentsResult>,
     pub well_known_oa: Option<WellKnownOaResult>,
+    pub infrastructure: Option<InfraDetection>,
     pub error: Option<String>,
 }
 
@@ -91,6 +93,7 @@ impl AnalysisResult {
             robots_meta: None,
             markdown_agents: None,
             well_known_oa: None,
+            infrastructure: None,
             error: Some(error),
         }
     }

@@ -546,6 +546,7 @@ mod tests {
             robots_meta: None,
             markdown_agents: None,
             well_known_oa: None,
+            infrastructure: None,
             error: None,
         }
     }

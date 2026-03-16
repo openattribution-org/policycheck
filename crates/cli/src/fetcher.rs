@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use policycheck_core::checks::infrastructure::InfraProbeData;
 use policycheck_core::checks::markdown_agents::MarkdownProbeData;
 use policycheck_core::models::TdmRule;
 use std::time::Duration;
@@ -165,7 +166,13 @@ impl RobotFetcher {
     /// Must be GET, not HEAD — Cloudflare only transforms the body (and
     /// sets markdown headers) on GET requests.
     /// Returns `None` on any network or parsing failure.
-    pub async fn fetch_markdown_probe(&self, base_url: &str) -> Option<MarkdownProbeData> {
+    /// Probe a URL for Markdown for Agents support and infrastructure headers.
+    ///
+    /// Both are extracted from a single GET request with `Accept: text/markdown`.
+    pub async fn fetch_markdown_probe(
+        &self,
+        base_url: &str,
+    ) -> Option<(MarkdownProbeData, InfraProbeData)> {
         let markdown_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(5))
             .user_agent(format!(
@@ -182,32 +189,33 @@ impl RobotFetcher {
             .await
             .ok()?;
 
-        let status_code = response.status().as_u16();
+        let headers = response.headers();
 
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .map(String::from);
+        let header = |name: &str| -> Option<String> {
+            headers.get(name).and_then(|v| v.to_str().ok()).map(String::from)
+        };
 
-        let markdown_tokens = response
-            .headers()
-            .get("x-markdown-tokens")
-            .and_then(|v| v.to_str().ok())
-            .map(String::from);
+        let markdown = MarkdownProbeData {
+            status_code: response.status().as_u16(),
+            content_type: header("content-type"),
+            markdown_tokens: header("x-markdown-tokens"),
+            content_signal: header("content-signal"),
+        };
 
-        let content_signal = response
-            .headers()
-            .get("content-signal")
-            .and_then(|v| v.to_str().ok())
-            .map(String::from);
+        let infra = InfraProbeData {
+            server: header("server"),
+            x_powered_by: header("x-powered-by"),
+            cf_ray: header("cf-ray"),
+            x_vercel_id: header("x-vercel-id"),
+            x_nf_request_id: header("x-nf-request-id"),
+            x_served_by: header("x-served-by"),
+            x_akamai_transformed: header("x-akamai-transformed"),
+            x_amz_cf_id: header("x-amz-cf-id"),
+            link: header("link"),
+            x_pingback: header("x-pingback"),
+        };
 
-        Some(MarkdownProbeData {
-            status_code,
-            content_type,
-            markdown_tokens,
-            content_signal,
-        })
+        Some((markdown, infra))
     }
     /// Get the OpenAttribution well-known URL for a given base URL.
     pub fn get_well_known_oa_url(base_url: &str) -> Result<String> {
