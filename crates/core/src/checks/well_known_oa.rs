@@ -137,7 +137,7 @@ mod tests {
             "roles": ["content_owner"],
             "operator": { "name": "Example Media" },
             "telemetry": {
-                "endpoint": "https://api.openattribution.org/v1/events",
+                "endpoint": "https://telemetry.openattribution.org/events",
                 "conformance_level": "retrieval"
             },
             "domains": ["example.com", "*.example.com"]
@@ -150,7 +150,7 @@ mod tests {
         assert_eq!(result.operator_name, Some("Example Media".to_string()));
         assert_eq!(
             result.telemetry_endpoint,
-            Some("https://api.openattribution.org/v1/events".to_string())
+            Some("https://telemetry.openattribution.org/events".to_string())
         );
         assert_eq!(result.version, None);
         assert!(!result.has_verification);
@@ -184,7 +184,7 @@ mod tests {
                 { "id": "key-1", "type": "Ed25519", "publicKey": "z6Mk..." }
             ],
             "telemetry": {
-                "endpoint": "https://api.openattribution.org/v1/events",
+                "endpoint": "https://telemetry.openattribution.org/events",
                 "conformance_level": "grounding"
             }
         }"#;
@@ -194,7 +194,7 @@ mod tests {
         assert_eq!(result.roles, Some(vec!["agent".to_string()]));
         assert_eq!(
             result.telemetry_endpoint,
-            Some("https://api.openattribution.org/v1/events".to_string())
+            Some("https://telemetry.openattribution.org/events".to_string())
         );
     }
 
@@ -203,7 +203,7 @@ mod tests {
         let content = r#"{
             "openattribution": {
                 "version": "0.1",
-                "telemetry_endpoint": "https://api.openattribution.org/api/v1/telemetry",
+                "telemetry_endpoint": "https://telemetry.openattribution.org",
                 "verification": "oa-verify=7ddfbe00-1d6c-489e-bf82-c44ad2f27e2a"
             }
         }"#;
@@ -214,7 +214,7 @@ mod tests {
         assert_eq!(result.version, Some("0.1".to_string()));
         assert_eq!(
             result.telemetry_endpoint,
-            Some("https://api.openattribution.org/api/v1/telemetry".to_string())
+            Some("https://telemetry.openattribution.org".to_string())
         );
         assert!(result.has_verification);
     }
