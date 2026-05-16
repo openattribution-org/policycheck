@@ -1,6 +1,6 @@
 //! AI bot access analysis.
 //!
-//! Checks the access status of 26 known AI crawlers against robots.txt content.
+//! Checks the access status of 28 known AI crawlers against robots.txt content.
 //! Each bot is individually parsed to get accurate per-bot allow/disallow results.
 
 use crate::ai_crawlers::{AICrawler, BotStatus};
@@ -85,7 +85,7 @@ mod tests {
     fn test_analyze_ai_bots_all_allowed() {
         let content = "User-agent: *\nAllow: /\n";
         let results = analyze(content, "https://github.com/");
-        assert_eq!(results.len(), 26);
+        assert_eq!(results.len(), 28);
         for bot in &results {
             assert!(
                 matches!(bot.status, BotStatus::Allowed),
@@ -96,9 +96,9 @@ mod tests {
     }
 
     #[test]
-    fn test_analyze_ai_bots_returns_26() {
+    fn test_analyze_ai_bots_returns_28() {
         let results = analyze("", "https://github.com/");
-        assert_eq!(results.len(), 26);
+        assert_eq!(results.len(), 28);
     }
 
     #[test]
@@ -126,7 +126,7 @@ User-agent: *\nAllow: /\n";
     fn test_wildcard_disallow_blocks_all_ai_bots() {
         let content = "User-agent: *\nDisallow: /\n";
         let results = analyze(content, "https://www.nytimes.com/");
-        assert_eq!(results.len(), 26);
+        assert_eq!(results.len(), 28);
         for bot in &results {
             assert!(
                 matches!(bot.status, BotStatus::Blocked),

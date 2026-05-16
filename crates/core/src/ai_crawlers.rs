@@ -50,8 +50,8 @@ impl AICrawler {
             AICrawler {
                 name: "Claude-Web".to_string(),
                 company: "Anthropic".to_string(),
-                category: CrawlerCategory::Training,
-                purpose: "Web-focused training".to_string(),
+                category: CrawlerCategory::UserTriggered,
+                purpose: "Legacy user-triggered fetching (predates Claude-User)".to_string(),
             },
             AICrawler {
                 name: "Google-Extended".to_string(),
@@ -133,6 +133,12 @@ impl AICrawler {
                 purpose: "ChatGPT search indexing".to_string(),
             },
             AICrawler {
+                name: "Claude-SearchBot".to_string(),
+                company: "Anthropic".to_string(),
+                category: CrawlerCategory::Search,
+                purpose: "Claude web_search tool grounding fetches".to_string(),
+            },
+            AICrawler {
                 name: "PerplexityBot".to_string(),
                 company: "Perplexity".to_string(),
                 category: CrawlerCategory::Search,
@@ -154,6 +160,12 @@ impl AICrawler {
             AICrawler {
                 name: "ChatGPT-User".to_string(),
                 company: "OpenAI".to_string(),
+                category: CrawlerCategory::UserTriggered,
+                purpose: "User-requested fetching".to_string(),
+            },
+            AICrawler {
+                name: "Claude-User".to_string(),
+                company: "Anthropic".to_string(),
                 category: CrawlerCategory::UserTriggered,
                 purpose: "User-requested fetching".to_string(),
             },
