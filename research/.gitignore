@@ -3,8 +3,10 @@
 __pycache__/
 *.pyc
 
-# Output data
+# Output data (ad-hoc runs)
 output/
+# Note: published snapshots live in data/ and are tracked.
 
-# Override root *.csv ignore — prompts.csv is source data
+# Override root *.csv ignore — source data and published snapshots are tracked
 !prompts.csv
+!data/*.csv
