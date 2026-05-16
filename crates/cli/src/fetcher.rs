@@ -34,7 +34,12 @@ impl RobotFetcher {
         Ok(robots_url)
     }
 
-    /// Fetch robots.txt content from a URL
+    /// Fetch robots.txt content from a URL.
+    ///
+    /// Per RFC 9309 §2.3.1.3, a 4xx response means robots.txt is unavailable
+    /// and the crawler may access any resource — so we return an empty body
+    /// (no rules → allow all). 5xx, redirects-loop, and network failures
+    /// remain errors and surface as `FetchError` upstream.
     pub async fn fetch(&self, robots_url: &str) -> Result<String> {
         let response = self
             .client
@@ -43,11 +48,17 @@ impl RobotFetcher {
             .await
             .context("Failed to send request")?;
 
-        if !response.status().is_success() {
+        let status = response.status();
+
+        if status.is_client_error() {
+            return Ok(String::new());
+        }
+
+        if !status.is_success() {
             anyhow::bail!(
                 "HTTP {} - {}",
-                response.status(),
-                response.status().canonical_reason().unwrap_or("Unknown")
+                status,
+                status.canonical_reason().unwrap_or("Unknown")
             );
         }
 
@@ -343,5 +354,67 @@ mod tests {
     #[test]
     fn test_get_well_known_oa_url_invalid() {
         assert!(RobotFetcher::get_well_known_oa_url("not-a-url").is_err());
+    }
+
+    // RFC 9309 §2.3.1.3: 4xx on robots.txt means "unavailable" — the crawler
+    // may access any resource. We surface that as an empty body (no rules)
+    // so the analyser still runs and returns a useful verdict instead of a
+    // top-level fetch error that the UI can't render.
+    async fn spawn_status_server(status: u16) -> String {
+        use axum::http::StatusCode;
+        use axum::response::IntoResponse;
+        use axum::routing::get;
+        use axum::Router;
+
+        let app = Router::new().route(
+            "/robots.txt",
+            get(move || async move {
+                (
+                    StatusCode::from_u16(status).unwrap(),
+                    "should not be read on error",
+                )
+                    .into_response()
+            }),
+        );
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        format!("http://{}", addr)
+    }
+
+    #[tokio::test]
+    async fn test_fetch_404_returns_empty_body() {
+        let base = spawn_status_server(404).await;
+        let fetcher = RobotFetcher::new();
+        let content = fetcher
+            .fetch(&format!("{}/robots.txt", base))
+            .await
+            .expect("404 should be treated as empty robots.txt");
+        assert_eq!(content, "");
+    }
+
+    #[tokio::test]
+    async fn test_fetch_403_returns_empty_body() {
+        let base = spawn_status_server(403).await;
+        let fetcher = RobotFetcher::new();
+        let content = fetcher
+            .fetch(&format!("{}/robots.txt", base))
+            .await
+            .expect("403 should be treated as empty robots.txt");
+        assert_eq!(content, "");
+    }
+
+    #[tokio::test]
+    async fn test_fetch_500_returns_error() {
+        let base = spawn_status_server(500).await;
+        let fetcher = RobotFetcher::new();
+        let err = fetcher
+            .fetch(&format!("{}/robots.txt", base))
+            .await
+            .expect_err("5xx should surface as a fetch error");
+        assert!(err.to_string().contains("500"));
     }
 }
