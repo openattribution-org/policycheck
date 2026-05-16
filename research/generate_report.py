@@ -41,18 +41,32 @@ PROVIDER_BOT_MAP = {
     "openai": "GPTBot",
     "gemini": "Google-Extended",
     "perplexity": "PerplexityBot",
+    "anthropic": "ClaudeBot",
+}
+
+# Live-search / agentic bot per provider — the user agent the provider's
+# web_search tool actually uses at answer-time. Publisher robots.txt rules
+# usually do not name these bots, so the live-bot blocking rate is the
+# stricter test of provider consent behaviour.
+PROVIDER_LIVE_BOT_MAP = {
+    "openai": "OAI-SearchBot",
+    "gemini": "Google-Extended",
+    "perplexity": "Perplexity-User",
+    "anthropic": "Claude-SearchBot",
 }
 
 PROVIDER_COLOURS = {
     "openai": CORAL_600,
     "gemini": AMBER_600,
     "perplexity": "#7c3aed",
+    "anthropic": "#0ea5e9",
 }
 
 PROVIDER_DISPLAY_NAMES = {
     "openai": "OpenAI",
     "gemini": "Gemini",
     "perplexity": "Perplexity",
+    "anthropic": "Anthropic",
 }
 
 
@@ -105,32 +119,48 @@ def compute_stats(rows: list[dict]) -> dict:
     providers_seen = set(r["provider"] for r in citations)
     categories_seen = set(r["category"] for r in citations)
 
-    # Per-provider violation rates
+    # Per-provider violation rates — training bot AND live-search bot
     provider_stats = {}
     for provider in sorted(providers_seen):
         prows = [r for r in citations if r["provider"] == provider]
-        has_data = [r for r in prows if r.get("bot_blocked", "").strip()]
-        blocked = [r for r in has_data if r["bot_blocked"] == "true"]
+
+        t_has = [r for r in prows if r.get("training_bot_blocked", r.get("bot_blocked", "")).strip()]
+        t_blk = [r for r in t_has if r.get("training_bot_blocked", r.get("bot_blocked", "")) == "true"]
+
+        l_has = [r for r in prows if r.get("live_bot_blocked", "").strip()]
+        l_blk = [r for r in l_has if r.get("live_bot_blocked", "") == "true"]
+
         provider_stats[provider] = {
             "total": len(prows),
-            "checked": len(has_data),
-            "blocked": len(blocked),
-            "rate": len(blocked) / len(has_data) * 100 if has_data else 0,
+            "checked": len(t_has),
+            "blocked": len(t_blk),
+            "rate": len(t_blk) / len(t_has) * 100 if t_has else 0,
+            "live_checked": len(l_has),
+            "live_blocked": len(l_blk),
+            "live_rate": len(l_blk) / len(l_has) * 100 if l_has else 0,
         }
 
-    # Per-category violation rates
+    # Per-category violation rates — training bot AND live-search bot
     category_stats = {}
     for cat in sorted(categories_seen):
         cat_rows = [r for r in citations if r["category"] == cat]
-        has_data = [r for r in cat_rows if r.get("bot_blocked", "").strip()]
-        blocked = [r for r in has_data if r["bot_blocked"] == "true"]
+
+        t_has = [r for r in cat_rows if r.get("training_bot_blocked", r.get("bot_blocked", "")).strip()]
+        t_blk = [r for r in t_has if r.get("training_bot_blocked", r.get("bot_blocked", "")) == "true"]
+
+        l_has = [r for r in cat_rows if r.get("live_bot_blocked", "").strip()]
+        l_blk = [r for r in l_has if r.get("live_bot_blocked", "") == "true"]
+
         cat_domains = set(r["domain"] for r in cat_rows)
         category_stats[cat] = {
             "citations": len(cat_rows),
             "domains": len(cat_domains),
-            "checked": len(has_data),
-            "blocked": len(blocked),
-            "rate": len(blocked) / len(has_data) * 100 if has_data else 0,
+            "checked": len(t_has),
+            "blocked": len(t_blk),
+            "rate": len(t_blk) / len(t_has) * 100 if t_has else 0,
+            "live_checked": len(l_has),
+            "live_blocked": len(l_blk),
+            "live_rate": len(l_blk) / len(l_has) * 100 if l_has else 0,
         }
 
     # Top cited domains with compliance status
@@ -172,9 +202,12 @@ def compute_stats(rows: list[dict]) -> dict:
         if r.get("domain", "").strip()
     )
 
-    # Overall blocked count
-    all_checked = [r for r in citations if r.get("bot_blocked", "").strip()]
-    all_blocked = [r for r in all_checked if r["bot_blocked"] == "true"]
+    # Overall blocked counts — training bot AND live-search bot
+    all_checked = [r for r in citations if r.get("training_bot_blocked", r.get("bot_blocked", "")).strip()]
+    all_blocked = [r for r in all_checked if r.get("training_bot_blocked", r.get("bot_blocked", "")) == "true"]
+
+    live_checked = [r for r in citations if r.get("live_bot_blocked", "").strip()]
+    live_blocked = [r for r in live_checked if r.get("live_bot_blocked", "") == "true"]
 
     # Redirect/proxy URL citations (e.g. vertexaisearch.google.com)
     redirect_domains = {"vertexaisearch.cloud.google.com", "vertexaisearch.google.com"}
@@ -197,6 +230,9 @@ def compute_stats(rows: list[dict]) -> dict:
         "overall_checked": len(all_checked),
         "overall_blocked": len(all_blocked),
         "overall_rate": len(all_blocked) / len(all_checked) * 100 if all_checked else 0,
+        "overall_live_checked": len(live_checked),
+        "overall_live_blocked": len(live_blocked),
+        "overall_live_rate": len(live_blocked) / len(live_checked) * 100 if live_checked else 0,
         "provider_stats": provider_stats,
         "category_stats": category_stats,
         "top_domains": top_domains,
@@ -211,28 +247,45 @@ def compute_stats(rows: list[dict]) -> dict:
 
 
 def chart_provider_rates(stats: dict) -> str:
-    """Bar chart: violation rate per provider."""
+    """Grouped bar chart: training-bot vs live-search-bot violation rate per provider."""
+    import numpy as np
     ps = stats["provider_stats"]
     providers = list(ps.keys())
-    rates = [ps[p]["rate"] for p in providers]
-    labels = [f"{PROVIDER_DISPLAY_NAMES.get(p, p)}\n({PROVIDER_BOT_MAP.get(p, '?')})" for p in providers]
-    colours = [PROVIDER_COLOURS.get(p, GRAY_400) for p in providers]
+    t_rates = [ps[p]["rate"] for p in providers]
+    l_rates = [ps[p]["live_rate"] for p in providers]
+    display = [PROVIDER_DISPLAY_NAMES.get(p, p) for p in providers]
 
-    fig, ax = plt.subplots(figsize=(7, 4))
-    bars = ax.bar(labels, rates, color=colours, width=0.5, edgecolor="white", linewidth=1.5)
+    x = np.arange(len(providers))
+    width = 0.36
 
-    for bar, rate, p in zip(bars, rates, providers):
-        count = ps[p]["blocked"]
-        total = ps[p]["checked"]
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.8,
-                f"{rate:.1f}%\n({count}/{total})",
-                ha="center", va="bottom", fontsize=10, color=GRAY_700, fontweight="normal")
+    fig, ax = plt.subplots(figsize=(8.5, 4.5))
+    bars_t = ax.bar(x - width / 2, t_rates, width,
+                    color=CORAL_500, edgecolor="white", linewidth=1.2,
+                    label="Training bot (publishers' AI opt-out signal)")
+    bars_l = ax.bar(x + width / 2, l_rates, width,
+                    color=AMBER_500, edgecolor="white", linewidth=1.2,
+                    label="Live-search bot (the agent that actually fetched)")
+
+    for bar, rate, p in zip(bars_t, t_rates, providers):
+        bot = PROVIDER_BOT_MAP.get(p, "?")
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.4,
+                f"{rate:.1f}%\n{bot}",
+                ha="center", va="bottom", fontsize=8.5, color=GRAY_700)
+    for bar, rate, p in zip(bars_l, l_rates, providers):
+        bot = PROVIDER_LIVE_BOT_MAP.get(p, "?")
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.4,
+                f"{rate:.1f}%\n{bot}",
+                ha="center", va="bottom", fontsize=8.5, color=GRAY_700)
 
     ax.set_ylabel("Citations from blocked domains (%)")
-    ax.set_title("Violation rate by provider")
-    ax.set_ylim(0, max(rates) * 1.35 if rates else 10)
+    ax.set_title("Violation rate by provider — training bot vs live-search bot")
+    ax.set_xticks(x)
+    ax.set_xticklabels(display)
+    top = max(t_rates + l_rates) if (t_rates or l_rates) else 10
+    ax.set_ylim(0, top * 1.35 if top else 10)
     ax.yaxis.set_major_formatter(mticker.PercentFormatter())
     ax.grid(axis="y", alpha=0.3)
+    ax.legend(loc="upper right", fontsize=9, framealpha=0.95)
 
     return fig_to_base64(fig)
 
@@ -374,17 +427,30 @@ def generate_html(stats: dict, input_path: str, generated_at: str) -> str:
                 <td>{blocked_providers}</td>
             </tr>"""
 
-    # Provider headline cards
+    # Provider headline cards — show training + live rates per provider
     provider_cards = ""
     for p in sorted(stats["provider_stats"].keys()):
         ps = stats["provider_stats"][p]
-        bot = PROVIDER_BOT_MAP.get(p, "?")
+        t_bot = PROVIDER_BOT_MAP.get(p, "?")
+        l_bot = PROVIDER_LIVE_BOT_MAP.get(p, "?")
         colour = PROVIDER_COLOURS.get(p, GRAY_400)
+        same_bot = t_bot == l_bot
+        live_block = (
+            "<div class=\"metric-detail\" style=\"font-style: italic; margin-top: 0.25rem\">"
+            "Same bot covers both training and live grounding.</div>"
+            if same_bot else
+            f"""<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed {GRAY_200}">
+                <div class="metric-label">Live-search bot: {l_bot}</div>
+                <div class="metric-value" style="color: {AMBER_600}; font-size: 1.5rem">{ps["live_rate"]:.1f}%</div>
+                <div class="metric-detail">{ps["live_blocked"]}/{ps["live_checked"]} from blocked domains</div>
+            </div>"""
+        )
         provider_cards += f"""
             <div class="metric-card" style="border-left: 4px solid {colour}">
-                <div class="metric-label">{PROVIDER_DISPLAY_NAMES.get(p, p)} ({bot})</div>
+                <div class="metric-label">{PROVIDER_DISPLAY_NAMES.get(p, p)} &mdash; training bot: {t_bot}</div>
                 <div class="metric-value" style="color: {colour}">{ps["rate"]:.1f}%</div>
-                <div class="metric-detail">{ps["blocked"]}/{ps["checked"]} citations from blocked domains</div>
+                <div class="metric-detail">{ps["blocked"]}/{ps["checked"]} from blocked domains</div>
+                {live_block}
             </div>"""
 
     # Robots status breakdown
@@ -772,17 +838,28 @@ def generate_html(stats: dict, input_path: str, generated_at: str) -> str:
                 </div>
                 <div class="headline-stat">
                     <div class="number">{stats["overall_rate"]:.1f}%</div>
-                    <div class="label">Overall violation rate</div>
+                    <div class="label">Blocked by publisher's<br>AI-training opt-out signal</div>
                 </div>
                 <div class="headline-stat">
-                    <div class="number">{stats["overall_blocked"]}</div>
-                    <div class="label">Blocked citations</div>
+                    <div class="number">{stats["overall_live_rate"]:.1f}%</div>
+                    <div class="label">Blocked by publisher's<br>live-search opt-out signal</div>
                 </div>
                 <div class="headline-stat">
                     <div class="number">{len(stats["categories"])}</div>
                     <div class="label">Categories</div>
                 </div>
             </div>
+
+            <p style="margin-top: 1.5rem; font-size: 0.95rem; color: var(--gray-600); line-height: 1.6;">
+            Each citation is checked against two bots per provider: the
+            <strong>training crawler</strong> (the one publishers usually
+            name in <code>robots.txt</code> when they opt out of AI use)
+            and the <strong>live-search bot</strong> (the user agent the
+            provider's web_search tool actually uses at answer time).
+            Publishers' opt-out signals rarely name the live-search bot,
+            so the two rates can diverge sharply. Both numbers measure the
+            same providers, the same prompts, and the same cited URLs.
+            </p>
         </section>
 
         <section>
@@ -814,7 +891,7 @@ def generate_html(stats: dict, input_path: str, generated_at: str) -> str:
 
         <section>
             <h2>Violation Rate by Provider</h2>
-            <p>A "violation" occurs when an AI search engine cites a domain whose <code>robots.txt</code> explicitly blocks that provider's crawler bot. This does not imply illegality &mdash; it means the cited source has expressed a preference not to be crawled by that bot.</p>
+            <p>A "violation" occurs when an AI search engine cites a domain whose <code>robots.txt</code> blocks the relevant provider bot. Two bots are checked per provider: the training crawler (the bot most publishers name when they opt out of AI use) and the live-search bot (the user agent the provider's web_search tool actually uses). The two rates can diverge sharply because publishers' opt-out signals usually name only the training bot.</p>
 
             <div class="metrics">
                 {provider_cards}

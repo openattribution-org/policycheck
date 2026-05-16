@@ -1,4 +1,4 @@
-"""OpenAI GPT-5 provider with web_search tool."""
+"""OpenAI provider with built-in web_search tool."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from . import Citation, SearchResult
 
 class OpenAIProvider:
     name = "openai"
-    model = "gpt-4.1-mini"
+    model = "gpt-5-mini"
     crawler_bot = "GPTBot"
 
     def __init__(self) -> None:

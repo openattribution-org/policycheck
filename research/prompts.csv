@@ -9,6 +9,26 @@ consumer_electronics,what smart home stuff is actually worth buying? so much of 
 consumer_electronics,best gaming monitor under $500?
 consumer_electronics,has sony announced anything about the ps6 yet?
 consumer_electronics,looking for a robot vacuum that actually works well on pet hair
+consumer_electronics,is the apple vision pro 2 worth it or should I wait for v3
+consumer_electronics,what's the best e-reader for someone moving on from a kindle paperwhite?
+consumer_electronics,help me pick a mirrorless camera for travel — sony or fujifilm?
+consumer_electronics,bose vs sonos for a home theatre setup — which sounds better?
+consumer_electronics,my old airpods are dying. should I get airpods 4 or pro 3?
+consumer_electronics,is anker still the go-to for power banks or has someone better come out
+consumer_electronics,I want a smartwatch that isn't an apple watch — what are people recommending
+consumer_electronics,is the steam deck oled still the best handheld in 2026 or did the rog ally x catch up
+consumer_electronics,looking at the lg c5 and the samsung s95f — which oled is better for a bright living room
+consumer_electronics,what's actually a good 1440p gaming monitor under £400 in the UK
+consumer_electronics,is the dyson v15 still worth the price or are there cheaper cordless vacuums that match it
+consumer_electronics,which ipad should I buy if I mainly want to draw and take notes — pro or air
+consumer_electronics,is there a router actually worth upgrading to in 2026 or is wifi 7 still overkill
+consumer_electronics,thinking about a framework laptop — are they actually reliable now
+consumer_electronics,which espresso machine under $1000 would you recommend for a home barista
+consumer_electronics,is the meta quest 3s worth it or should I save up for a quest 4
+consumer_electronics,I want a portable bluetooth speaker for the beach — what's actually loud and waterproof
+consumer_electronics,best mechanical keyboard for typing if I don't care about gaming
+consumer_electronics,which dash cam should I buy for a 2024 honda civic
+consumer_electronics,is the rabbit r1 still a thing or did everyone move on
 news,what's the latest with the russia ukraine war?
 news,what happened at the UN general assembly this week?
 news,how are US china trade relations looking right now?
@@ -18,84 +38,294 @@ news,can you give me a summary of what's happening in the middle east?
 news,where are we at with AI regulation? any new laws passed?
 news,what are the biggest news stories this week?
 news,have there been any major natural disasters recently?
-news,what are the latest election polls showing?
-health,I'm on ozempic and worried about long term side effects — what does the research say?
-health,my lower back has been killing me. what exercises actually help?
-health,I had covid last year and still feel tired all the time. is that long covid?
-health,do I actually need to take vitamins or is it a waste of money?
-health,are there any mental health apps that are actually evidence-based?
-health,is intermittent fasting actually good for you? I keep seeing conflicting info
-health,how can I lower my cholesterol without taking statins?
-health,what diet has the most scientific evidence behind it?
-health,what are the warning signs of a heart attack in women? I heard they're different
-health,what's the latest on cancer treatment? any big breakthroughs recently?
-finance,where can I get the best interest rate on a savings account right now?
-finance,I want to start investing but have no idea where to begin. index funds?
-finance,what are mortgage rates doing? is it a good time to buy a house?
-finance,what's going on with bitcoin and crypto right now?
-finance,I travel a lot for work — what credit card gives the best rewards?
-finance,how much should I have in an emergency fund? I keep hearing different numbers
-finance,how much do I actually need to save for retirement? I'm 35
-finance,are there any student loan forgiveness programs I might qualify for?
-finance,is it worth using a robo advisor or should I just buy index funds myself?
-finance,what's the current inflation rate and where do economists think it's heading?
-travel,I'm planning my first trip to Japan — where should I go?
-travel,what's the cheapest way to fly to Europe from the US right now?
-travel,can you recommend a good all-inclusive resort in the Caribbean? preferably adults only
-travel,do I actually need travel insurance? which companies are good?
-travel,what are the safest countries for solo female travellers?
-travel,when's the best time to go to Iceland if I want to see the northern lights?
-travel,which airlines are best for long haul? I'm flying to Asia next month
-travel,I want to go somewhere in southeast asia that isn't super touristy. any ideas?
-travel,what national parks in the US are worth visiting? I've only been to Yellowstone
-travel,any tips for finding cheap hotel deals last minute?
-food,I need easy dinner ideas for weeknights — like 30 minutes max
-food,I want to try making sourdough bread. where do I even start?
-food,what's a really authentic italian pasta sauce recipe? not the jar stuff
-food,I'm trying to meal prep for weight loss but everything I make is boring
-food,just got an air fryer and have no idea what to make. help?
-food,I want to make proper ramen at home. is that even possible?
-food,what can I put in a smoothie to actually give me energy in the morning?
-food,what's your go-to chocolate chip cookie recipe?
-food,how do I cook a steak properly? I always overcook it
-food,I'm trying to eat less meat. what are some easy vegetarian recipes that actually taste good?
-technology,what programming languages are worth learning in 2026? I already know python
-technology,can you explain quantum computing in simple terms? I don't get it
-technology,what's new with chatgpt? I haven't kept up with the latest updates
-technology,I need to host a web app — what are the best cloud providers to look at?
-technology,how do I set up mesh wifi at home? my internet is terrible upstairs
-technology,I run a small business — what cybersecurity stuff should I actually worry about?
-technology,how close are we to actually having self-driving cars?
-technology,what are the best project management tools for a remote team of about 10 people?
-technology,I keep hearing about blockchain but I still don't really understand what it does
-technology,what AI tools are people actually using for productivity? not just hype
-sports,what's the current premier league table looking like? any transfer rumours?
-sports,who do you think will make the NBA playoffs this year?
-sports,I'm training for my first marathon — what running shoes should I get?
-sports,what happened in the last F1 race?
-sports,how are the olympics going? who's winning the most medals?
-sports,I want to set up a home gym on a budget. what equipment do I actually need?
-sports,who are the top prospects in this year's NFL draft?
-sports,who won the latest tennis grand slam?
-sports,I'm an intermediate golfer looking to upgrade my clubs. any recommendations?
-sports,what's the world cup qualifying situation looking like?
-education,what's the best online course for getting into data science? I have a stats background
-education,how should I prepare for the GRE? I'm terrible at standardised tests
-education,what are the top computer science universities globally? not just in the US
-education,I want to learn python — what free resources are actually good?
-education,any tips for writing a strong college application essay? my daughter is applying
-education,what's the best app for learning a new language? I want to learn spanish
-education,is an online MBA actually worth it? or do employers not take them seriously?
-education,what study techniques actually work? I feel like I forget everything
-education,how do you find scholarships for grad school? I can't afford full tuition
-education,are coding bootcamps worth it? which ones actually help you get a job?
-shopping,any good deals on amazon right now?
-shopping,what washing machine brands are actually reliable? mine just died
-shopping,I'm a side sleeper and my mattress is terrible. what should I get?
-shopping,where do you find good deals on designer clothes without paying full price?
-shopping,I need an office chair I can sit in for 8+ hours. what's good?
-shopping,what kitchen appliances are actually worth the counter space?
-shopping,is it worth buying refurbished electronics? where's the best place?
-shopping,what skincare products do dermatologists actually recommend?
-shopping,what are some good sustainable clothing brands that aren't crazy expensive?
-shopping,where's the best place to buy furniture online without getting ripped off?
+news,what's going on with the UK government at the moment
+news,what's the latest on the gaza ceasefire talks
+news,who won the most recent G7 summit and what came out of it
+news,what major elections are happening this year and how are they polling
+news,has anything new come out about the boeing safety investigations
+news,what's happening with the tiktok ban situation in the US
+news,did anything significant happen with crypto regulation recently
+news,what's the state of the brexit aftermath in 2026 — anything new
+news,any updates on the south china sea tensions
+news,who are the front runners for the next US presidential election
+news,what's new with NATO and european defence spending
+news,what happened with the most recent Fed interest rate decision
+news,any major tech antitrust cases moving forward right now
+news,what's the latest from COP31
+news,how are oil prices looking and what's driving them
+news,any major OpenAI or Anthropic news this week
+news,what's going on at the southern US border right now
+news,update me on the latest Apple legal trouble
+news,whats going on with iran's nuclear program
+news,who's leading the labour party right now and what are they pushing
+news,any major media company layoffs in the last month
+health,ozempic side effects — what should I actually expect
+health,best treatment for chronic lower back pain that isn't just painkillers
+health,how do I lower my cholesterol without going on statins
+health,what's the deal with creatine for women — is it actually safe
+health,I keep waking up at 3am every night. what could be causing that
+health,what are the best supplements for someone in their 40s
+health,does intermittent fasting actually work for fat loss
+health,how do I know if I have ADHD as an adult
+health,what's the difference between the moderna and pfizer flu shots this year
+health,how much vitamin d should I actually be taking in the winter
+health,is mounjaro better than ozempic for weight loss
+health,what foods should I avoid if I have high blood pressure
+health,how do I know if my migraines are actually cluster headaches
+health,is microdosing psilocybin actually doing anything or is it placebo
+health,what's the best way to treat seasonal allergies without zyrtec
+health,should I be worried about long covid symptoms two years later
+health,what supplements help with perimenopause symptoms
+health,is creatine bad for your kidneys at 5g a day long term
+health,how much protein do I actually need to build muscle in my 50s
+health,what's the most effective way to quit nicotine pouches
+health,is the carnivore diet actually safe for more than a few months
+health,can magnesium glycinate really help with sleep
+health,what's the deal with semaglutide compounded versions — are they safe
+health,best non-stimulant medication for adult ADHD
+health,how do I tell if I have a thyroid issue or just normal fatigue
+health,is testosterone replacement therapy worth it for men over 40
+health,what's the safest weight loss approach for someone over 60
+health,how effective is acupuncture for chronic pain — what does the evidence actually say
+health,what causes tinnitus and is there anything that genuinely helps
+health,is wegovy still hard to get in the UK
+finance,best savings accounts in the UK for 2026
+finance,should I invest in bitcoin right now or wait for the next dip
+finance,how much should I have in an emergency fund
+finance,what's the best robo-advisor for someone just starting out
+finance,is buying a house in london actually a good investment in 2026
+finance,how do I open a SIPP and what's better than vanguard
+finance,what's the deal with the new ISA rules this tax year
+finance,should I pay off my mortgage early or invest the money
+finance,is the S&P 500 still the best index fund to buy and hold
+finance,what's a reasonable amount to spend on a car if I make 80k
+finance,best high yield savings accounts in the US right now
+finance,what are people doing with their roth IRAs in this market
+finance,is real estate still a good investment with these rates
+finance,which credit card has the best travel rewards in 2026
+finance,how do I start investing if I only have £100 a month
+finance,is bitcoin or ethereum a better long term hold right now
+finance,what's the best low-fee broker for index investing in the UK
+finance,should I worry about my pension if I'm 35 and have £40k saved
+finance,how do I diversify away from US tech stocks without losing returns
+finance,what's the best way to save for a child's university costs
+finance,is monzo or starling better for everyday banking now
+finance,what's a sensible bond allocation for a 50 year old
+finance,is dollar cost averaging actually better than lump sum investing
+finance,best crypto exchange for UK residents in 2026
+finance,how do I know if my financial advisor is ripping me off
+finance,is whole life insurance ever actually worth it
+finance,what's a fair fee for a financial planner in 2026
+finance,should I lock in a fixed rate mortgage or stay variable
+finance,how do REITs compare to direct property investment
+finance,what's the smartest way to use a HELOC right now
+travel,best hotels in rome for a long weekend
+travel,cheap flights to tokyo from london this autumn
+travel,is iceland still worth visiting in 2026
+travel,best beaches in portugal that aren't completely overrun
+travel,where should I go for a 10 day trip in southeast asia
+travel,is it safe to travel to mexico right now
+travel,best european cities for a solo female traveller
+travel,how much does a trip to the maldives actually cost
+travel,what's a good road trip route in the western US
+travel,is the eurail pass actually worth it
+travel,where in italy can I avoid the crowds in summer
+travel,best ski resorts in the alps that aren't insanely expensive
+travel,is south korea a good first asia trip
+travel,where can you get a decent all-inclusive that isn't tacky
+travel,best winter sun destinations within 5 hours of london
+travel,is japan still cheap to visit or has the yen recovered
+travel,what's the best way to see the northern lights — iceland norway or finland
+travel,is taiwan safe to visit in 2026 given everything going on with china
+travel,best places to visit in india for a first timer
+travel,where should I honeymoon in october
+travel,is morocco a good shoulder-season trip
+travel,best small cruise lines that don't feel like floating shopping malls
+travel,where can I see the milky way without driving 6 hours
+travel,is greece overrated or actually worth it for a 2 week holiday
+travel,best safari operators in tanzania that aren't ripping you off
+travel,where to stay in new york for a 4 day trip without paying $800 a night
+travel,is dubai still a good stopover or has it lost its shine
+travel,best train journeys in europe for a slow holiday
+travel,is bali still nice or has it been completely ruined
+travel,where should I take my parents in their 70s for a relaxed european trip
+food,best sourdough bread recipe for beginners
+food,quick meal prep ideas for busy weeknights
+food,how do I make ramen at home that doesn't taste cheap
+food,what's the best way to cook a steak indoors without a grill
+food,easy vegetarian dinners that aren't pasta
+food,how do I make my own kimchi and is it worth it
+food,best chocolate chip cookie recipe — chewy not crispy
+food,what can I actually do with chickpeas besides hummus
+food,how do I make restaurant-quality pizza in a home oven
+food,easy slow cooker recipes for someone who hates dry meat
+food,how do I make proper mexican rice at home
+food,best way to cook salmon so it doesn't dry out
+food,what should I do with the herbs that always go bad in my fridge
+food,how do you actually make a good carbonara without cream
+food,easy bread recipes that don't need a stand mixer
+food,best instant pot recipes that actually save time
+food,how do I make a good homemade curry from scratch
+food,what's a foolproof recipe for chocolate brownies
+food,how do I cook tofu so it doesn't taste like nothing
+food,easy lunch ideas to take to the office that aren't sandwiches
+food,how do I roast vegetables so they're actually crispy
+food,best banana bread recipe for using up overripe bananas
+food,how do I make a proper french omelette
+food,what are some good high-protein breakfast ideas without eggs
+food,how do I make sushi rice properly without a rice cooker
+food,easy fish recipes for someone who's scared of cooking fish
+food,how do I make a good thai green curry from scratch
+food,best chilli con carne recipe for a cold weekend
+food,how do I make focaccia that's actually fluffy
+food,what's a good weeknight curry I can make in under 30 minutes
+technology,how to set up a vpn at home in 2026
+technology,best password manager for a family of 4
+technology,is bitwarden still the best free password manager
+technology,how do I move from gmail to proton mail without losing everything
+technology,what's the easiest way to back up my entire mac
+technology,best self-hosted alternative to dropbox
+technology,how do I block ads on my home network without breaking everything
+technology,is signal really more secure than whatsapp
+technology,what's the best mesh wifi for a 4 bedroom house
+technology,how do I encrypt my external hard drive
+technology,best linux distro for a complete beginner in 2026
+technology,how do I run my own email server and is it worth it
+technology,what's the easiest way to host a small website for free
+technology,is pihole still worth setting up
+technology,how do I get rid of all the trackers in my browser
+technology,is using chatgpt for code review actually a good idea
+technology,best way to learn python in 2026 — courses or just build something
+technology,how do I host a small minecraft server for my kids
+technology,is openwrt worth flashing on a new router
+technology,what's the best home server build for plex and home assistant in 2026
+technology,how do I keep my ssh keys safe across multiple machines
+technology,is duckduckgo still a good google alternative or has it gotten worse
+technology,how do you actually get good at terminal/cli stuff
+technology,best note-taking app for a developer in 2026 — obsidian still on top
+technology,how do I migrate from 1password to bitwarden cleanly
+technology,what's a good firewall for a home network if I'm not a network engineer
+technology,is tailscale still the easiest way to connect my devices
+technology,how do I run llms locally on a mac without faff
+technology,what's the cleanest way to manage dotfiles across machines
+technology,is github copilot worth it for a hobbyist or just for pros
+sports,premier league transfer rumours this week
+sports,nba playoff predictions for this season
+sports,who's going to win the champions league this year
+sports,latest formula 1 news from this race weekend
+sports,who are the favourites for the next world cup
+sports,what happened in the last manchester united match
+sports,is messi still playing in MLS or has he moved on
+sports,who's leading the premier league right now
+sports,latest tennis news — is alcaraz still world number 1
+sports,who won the most recent UFC pay per view
+sports,who's expected to win wimbledon this year
+sports,what's going on with the saudi LIV golf situation now
+sports,latest NFL trade rumours
+sports,who's tipped for the ballon d'or this year
+sports,when does the rugby six nations start
+sports,who's going to win the masters at augusta
+sports,latest cricket news from england vs australia
+sports,what's the latest on liverpool's manager situation
+sports,who are the breakout players in the premier league this season
+sports,is verstappen still dominating F1 or has someone caught up
+sports,who won the most recent boxing heavyweight fight
+sports,what's the latest on the lakers and lebron's future
+sports,are the celtics still favourites for the NBA finals
+sports,who's the best mens golfer in the world right now
+sports,latest on the FIFA world cup 2026 qualifying
+sports,who's the favourite to win the women's euros next year
+sports,latest news on cristiano ronaldo
+sports,who's leading the champions league top scorer race
+sports,what's the latest serie A title race looking like
+sports,who are the contenders for NFL MVP this season
+education,best online courses for learning python in 2026
+education,how to actually learn machine learning if you're a software dev
+education,is computer science still worth studying as a degree
+education,best free coding bootcamp for switching careers
+education,how do I get into AI engineering without a phd
+education,what are the best masters programmes for product management
+education,how do I learn statistics properly as an adult
+education,is duolingo actually good for learning french
+education,best resources for learning data science from scratch
+education,is an MBA worth it in 2026 if I'm 35
+education,what's the best way to learn rust in 2026
+education,how do I prepare for the GMAT in 3 months
+education,best free university lectures online for math
+education,is coursera or edx better for serious learning
+education,how do I learn spanish from b1 to fluent
+education,best universities for AI in europe
+education,what's the cheapest way to get a CS degree as an adult
+education,how do I get into cybersecurity with no experience
+education,best podcasts for learning economics
+education,is khan academy still good for high school maths
+education,how do I improve my english writing as an academic non-native
+education,best way to learn music theory for an adult beginner
+education,how to study for the LNAT
+education,is the 80000 hours career guide actually useful
+education,how do I learn how to learn — best meta-learning resources
+education,best free resources for SAT prep in 2026
+education,how do I learn to code if I'm 50 and starting from zero
+education,is goldsmiths good for art and design or is it overrated
+education,what's a realistic study plan for the bar exam
+education,how to teach yourself electrical engineering basics at home
+shopping,best running shoes for flat feet under £150
+shopping,affordable standing desk that won't wobble
+shopping,best birthday gift for a 10 year old who loves science
+shopping,what's a good office chair under £400 that won't destroy my back
+shopping,best winter coat for someone living in scotland
+shopping,where to buy decent quality men's t-shirts that aren't uniqlo
+shopping,best christmas gift for my dad who has everything
+shopping,what's a good gift for a new baby that's actually useful
+shopping,best skincare routine for men in their 30s on a budget
+shopping,where to buy a sofa that isn't ikea but won't cost £3000
+shopping,best baby stroller for city living
+shopping,what's a reliable mattress brand for under £800
+shopping,best gym gear for women that isn't lululemon
+shopping,where to buy decent cookware that lasts
+shopping,best smartwatch for tracking sleep accurately
+shopping,affordable engagement ring options that don't look cheap
+shopping,best gift for a friend who just moved into their first flat
+shopping,where to find decent quality kids' clothes that aren't fast fashion
+shopping,best electric toothbrush — sonicare or oral-b
+shopping,what's a good chef's knife for someone who just got into cooking
+shopping,best dog bed for a large breed under £100
+shopping,where to buy quality denim jeans that don't fall apart
+shopping,best gift for a coworker leaving the company
+shopping,what's a good budget dslr alternative for a teenager
+shopping,best slippers for someone with bad knees
+shopping,where to buy a winter duvet that's actually warm
+shopping,best running socks under £20
+shopping,what's a good present for someone going off to university
+shopping,best yoga mat for hot yoga
+shopping,where to buy a desk lamp that won't hurt my eyes
+brands,is patagonia actually as ethical as they claim
+brands,is tesla still a good buy in 2026 or have they fallen behind
+brands,is allbirds going out of business
+brands,is rivian still a serious player in the EV market
+brands,is bose still the best brand for noise cancelling
+brands,is shein actually as bad as everyone says
+brands,why did peloton stock crash and is the brand recovering
+brands,is ben and jerry's still owned by unilever
+brands,is etsy still good or has it gone downhill
+brands,is monzo profitable yet
+brands,is dyson still innovating or just charging premium prices
+brands,is canada goose worth the price
+brands,what happened to wework — are they actually back
+brands,is bumble doing better than tinder these days
+brands,is whoop a better fitness tracker than oura
+brands,is ninja the best blender brand right now
+brands,is on cloud actually a good running shoe brand long term
+brands,is rolex still a good investment in 2026
+brands,is the body shop closing all its uk stores
+brands,is sweetgreen actually healthy or just expensive
+brands,is hellofresh still worth the subscription cost
+brands,is tony's chocolonely actually slavery free
+brands,is uniqlo still cheap or has it gone upmarket
+brands,is brewdog still owned by james watt
+brands,is huel actually good for you long term
+brands,is who gives a crap toilet paper actually better than regular brands
+brands,is gymshark still the leading fitness apparel brand
+brands,is oatly losing market share to other oat milk brands
+brands,is airbnb still cheaper than hotels in 2026
+brands,is glossier still around or have they shut down

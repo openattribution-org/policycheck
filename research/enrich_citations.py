@@ -18,11 +18,17 @@ from urllib.parse import urlparse
 
 import requests
 
-# Which crawler bot each provider uses for training/indexing
-PROVIDER_BOT_MAP: dict[str, str] = {
-    "openai": "GPTBot",
-    "gemini": "Google-Extended",
-    "perplexity": "PerplexityBot",
+# Per provider, the two bot identities the audit checks.
+# "training" is the crawler the provider uses for model training; this is the
+# bot most publishers list explicitly when they want to opt out of AI use.
+# "live" is the user agent the provider's web_search / grounding tool uses
+# when fetching pages at answer-time. Publishers' opt-out signals usually
+# do not name these live agents, so the two rates can diverge sharply.
+PROVIDER_BOT_MAP: dict[str, dict[str, str]] = {
+    "openai":     {"training": "GPTBot",          "live": "OAI-SearchBot"},
+    "gemini":     {"training": "Google-Extended", "live": "Google-Extended"},
+    "perplexity": {"training": "PerplexityBot",   "live": "Perplexity-User"},
+    "anthropic":  {"training": "ClaudeBot",       "live": "Claude-SearchBot"},
 }
 
 
@@ -119,7 +125,15 @@ def enrich(
     with open(input_path, newline="", encoding="utf-8") as fin:
         reader = csv.DictReader(fin)
         in_fields = list(reader.fieldnames or [])
-        out_fields = in_fields + ["bot_blocked", "robots_status"]
+        new_fields = [
+            "training_bot",
+            "training_bot_blocked",
+            "live_bot",
+            "live_bot_blocked",
+            "bot_blocked",  # alias for training_bot_blocked; preserved for back-compat
+            "robots_status",
+        ]
+        out_fields = in_fields + [f for f in new_fields if f not in in_fields]
 
         with open(output_path, "w", newline="", encoding="utf-8") as fout:
             writer = csv.DictWriter(fout, fieldnames=out_fields)
@@ -128,30 +142,49 @@ def enrich(
             for row in reader:
                 domain = row.get("domain", "").strip()
                 provider = row.get("provider", "").strip()
-                bot_name = PROVIDER_BOT_MAP.get(provider)
+                bot_pair = PROVIDER_BOT_MAP.get(provider, {})
+                training_bot = bot_pair.get("training", "")
+                live_bot = bot_pair.get("live", "")
 
                 info = lookup.get(domain, {})
                 robots_status = info.get("status", "")
                 bots = info.get("bots", {})
 
-                if not domain or not bot_name:
-                    bot_blocked = ""
-                elif bot_name in bots:
-                    bot_blocked = str(bots[bot_name] == "blocked").lower()
-                else:
-                    bot_blocked = ""
+                def status_for(name: str) -> str:
+                    if not domain or not name:
+                        return ""
+                    if name not in bots:
+                        return ""
+                    return str(bots[name] == "blocked").lower()
 
-                row["bot_blocked"] = bot_blocked
+                training_blocked = status_for(training_bot)
+                live_blocked = status_for(live_bot)
+
+                row["training_bot"] = training_bot
+                row["training_bot_blocked"] = training_blocked
+                row["live_bot"] = live_bot
+                row["live_bot_blocked"] = live_blocked
+                row["bot_blocked"] = training_blocked  # back-compat alias
                 row["robots_status"] = robots_status
                 writer.writerow(row)
 
                 # Track stats for summary
-                if provider and bot_blocked:
-                    if provider not in stats:
-                        stats[provider] = {"total": 0, "blocked": 0}
-                    stats[provider]["total"] += 1
-                    if bot_blocked == "true":
-                        stats[provider]["blocked"] += 1
+                if provider and training_blocked:
+                    s = stats.setdefault(provider, {
+                        "training_total": 0, "training_blocked": 0,
+                        "live_total": 0,     "live_blocked": 0,
+                    })
+                    s["training_total"] += 1
+                    if training_blocked == "true":
+                        s["training_blocked"] += 1
+                if provider and live_blocked:
+                    s = stats.setdefault(provider, {
+                        "training_total": 0, "training_blocked": 0,
+                        "live_total": 0,     "live_blocked": 0,
+                    })
+                    s["live_total"] += 1
+                    if live_blocked == "true":
+                        s["live_blocked"] += 1
 
     return stats
 
@@ -237,12 +270,25 @@ def main() -> None:
     print()
 
     for provider, s in sorted(stats.items()):
-        bot = PROVIDER_BOT_MAP.get(provider, "?")
-        rate = s["blocked"] / s["total"] * 100 if s["total"] > 0 else 0
+        pair = PROVIDER_BOT_MAP.get(provider, {})
+        training_bot = pair.get("training", "?")
+        live_bot = pair.get("live", "?")
+        t_rate = (
+            s["training_blocked"] / s["training_total"] * 100
+            if s["training_total"] > 0 else 0
+        )
+        l_rate = (
+            s["live_blocked"] / s["live_total"] * 100
+            if s["live_total"] > 0 else 0
+        )
+        print(f"  {provider}:")
         print(
-            f"  {provider} ({bot}): "
-            f"{s['blocked']}/{s['total']} citations blocked "
-            f"({rate:.1f}%)"
+            f"    training [{training_bot:<18}] "
+            f"{s['training_blocked']}/{s['training_total']} blocked ({t_rate:.1f}%)"
+        )
+        print(
+            f"    live     [{live_bot:<18}] "
+            f"{s['live_blocked']}/{s['live_total']} blocked ({l_rate:.1f}%)"
         )
 
 

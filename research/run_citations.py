@@ -29,12 +29,14 @@ PROVIDER_REGISTRY: dict[str, tuple[str, str]] = {
     "openai": ("providers.openai_provider", "OpenAIProvider"),
     "gemini": ("providers.gemini_provider", "GeminiProvider"),
     "perplexity": ("providers.perplexity_provider", "PerplexityProvider"),
+    "anthropic": ("providers.anthropic_provider", "AnthropicProvider"),
 }
 
 ENV_KEYS: dict[str, str] = {
     "openai": "OPENAI_API_KEY",
     "gemini": "GEMINI_API_KEY",
     "perplexity": "PERPLEXITY_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
 }
 
 CSV_COLUMNS = [
