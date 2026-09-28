@@ -14,9 +14,12 @@ permissions:
   actions: write
   contents: read
 
+# Checks hit the Fly origin directly: Cloudflare serves a managed challenge
+# to datacenter IPs, so runners can't get through the proxied hostname.
+# The 525 failure mode (expired origin cert) is caught by the cert job.
 env:
-  API_URL: https://policycheck.openattribution.org
   FLY_ORIGIN: policycheck-d7wv0g.fly.dev
+  PUBLIC_HOST: policycheck.openattribution.org
   CERT_MIN_DAYS: 21
 
 jobs:
@@ -25,13 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-    # Goes through Cloudflare, so an origin TLS failure shows up as 525.
     # Retries cover Fly cold starts (min_machines_running = 0).
     - name: POST /analyze
       run: |
         code=$(curl -sS --retry 3 --retry-all-errors --retry-delay 10 --max-time 60 \
           -D headers.txt -o body.json -w '%{http_code}' \
-          -X POST "$API_URL/analyze" \
+          -X POST "https://$FLY_ORIGIN/analyze" \
           -H 'Origin: https://openattribution.org' \
           -H 'Content-Type: application/json' \
           -d '{"urls":["https://openattribution.org"],"user_agent":"*"}')
@@ -45,7 +47,7 @@ jobs:
 
     - name: CORS preflight
       run: |
-        headers=$(curl -sS --fail --max-time 30 -D - -o /dev/null -X OPTIONS "$API_URL/analyze" \
+        headers=$(curl -sS --fail --max-time 30 -D - -o /dev/null -X OPTIONS "https://$FLY_ORIGIN/analyze" \
           -H 'Origin: https://openattribution.org' \
           -H 'Access-Control-Request-Method: POST' \
           -H 'Access-Control-Request-Headers: content-type')
@@ -64,13 +66,13 @@ jobs:
     # Fly renews at 30 days left; under 21 means renewal is failing.
     - name: Check expiry
       run: |
-        end=$(echo | openssl s_client -connect "$FLY_ORIGIN:443" -servername policycheck.openattribution.org 2>/dev/null \
+        end=$(echo | openssl s_client -connect "$FLY_ORIGIN:443" -servername "$PUBLIC_HOST" 2>/dev/null \
           | openssl x509 -noout -enddate | cut -d= -f2)
         [ -n "$end" ] || { echo "::error::Could not read origin certificate"; exit 1; }
         days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
         echo "Origin certificate expires $end ($days days)"
         if [ "$days" -lt "$CERT_MIN_DAYS" ]; then
-          echo "::error::Origin certificate expires in $days days; check fly certs show policycheck.openattribution.org"
+          echo "::error::Origin certificate expires in $days days; check fly certs show $PUBLIC_HOST"
           exit 1
         fi
 
