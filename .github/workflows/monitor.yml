@@ -1,0 +1,90 @@
+name: Monitor
+
+# Uptime check for the hosted API behind openattribution.org/policycheck.
+# A failed scheduled run emails whoever last changed the cron line.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths: [ .github/workflows/monitor.yml ]
+
+permissions:
+  actions: write
+  contents: read
+
+# Checks hit the Fly origin directly: Cloudflare serves a managed challenge
+# to datacenter IPs, so runners can't get through the proxied hostname.
+# The 525 failure mode (expired origin cert) is caught by the cert job.
+env:
+  FLY_ORIGIN: policycheck-d7wv0g.fly.dev
+  PUBLIC_HOST: policycheck.openattribution.org
+  CERT_MIN_DAYS: 21
+
+jobs:
+  api:
+    name: API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    # Retries cover Fly cold starts (min_machines_running = 0).
+    - name: POST /analyze
+      run: |
+        code=$(curl -sS --retry 3 --retry-all-errors --retry-delay 10 --max-time 60 \
+          -D headers.txt -o body.json -w '%{http_code}' \
+          -X POST "https://$FLY_ORIGIN/analyze" \
+          -H 'Origin: https://openattribution.org' \
+          -H 'Content-Type: application/json' \
+          -d '{"urls":["https://openattribution.org"],"user_agent":"*"}')
+        status=$(jq -r '.results[0].status' body.json 2>/dev/null || true)
+        if [ "$code" != 200 ] || [ "$status" != success ]; then
+          echo "::error::HTTP $code, result status: ${status:-none}"
+          cat headers.txt
+          head -c 2000 body.json
+          exit 1
+        fi
+
+    - name: CORS preflight
+      run: |
+        headers=$(curl -sS --fail --max-time 30 -D - -o /dev/null -X OPTIONS "https://$FLY_ORIGIN/analyze" \
+          -H 'Origin: https://openattribution.org' \
+          -H 'Access-Control-Request-Method: POST' \
+          -H 'Access-Control-Request-Headers: content-type')
+        grep -qi '^access-control-allow-origin:' <<<"$headers" || {
+          echo "::error::No Access-Control-Allow-Origin on preflight"
+          echo "$headers"
+          exit 1
+        }
+
+  cert:
+    name: Origin certificate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    # Cloudflare's edge cert hides the Fly one, so ask the origin directly.
+    # Fly renews at 30 days left; under 21 means renewal is failing.
+    - name: Check expiry
+      run: |
+        end=$(echo | openssl s_client -connect "$FLY_ORIGIN:443" -servername "$PUBLIC_HOST" 2>/dev/null \
+          | openssl x509 -noout -enddate | cut -d= -f2)
+        [ -n "$end" ] || { echo "::error::Could not read origin certificate"; exit 1; }
+        days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
+        echo "Origin certificate expires $end ($days days)"
+        if [ "$days" -lt "$CERT_MIN_DAYS" ]; then
+          echo "::error::Origin certificate expires in $days days; check fly certs show $PUBLIC_HOST"
+          exit 1
+        fi
+
+  keepalive:
+    name: Keepalive
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+    # GitHub disables schedules in public repos after 60 days without
+    # activity; re-enabling via the API resets that clock.
+    - name: Re-enable workflow
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh workflow enable monitor.yml --repo "$GITHUB_REPOSITORY"
