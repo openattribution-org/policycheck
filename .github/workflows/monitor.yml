@@ -29,15 +29,17 @@ jobs:
     # Retries cover Fly cold starts (min_machines_running = 0).
     - name: POST /analyze
       run: |
-        body=$(curl -sS --fail-with-body --retry 3 --retry-all-errors --retry-delay 10 --max-time 60 \
+        code=$(curl -sS --retry 3 --retry-all-errors --retry-delay 10 --max-time 60 \
+          -D headers.txt -o body.json -w '%{http_code}' \
           -X POST "$API_URL/analyze" \
           -H 'Origin: https://openattribution.org' \
           -H 'Content-Type: application/json' \
           -d '{"urls":["https://openattribution.org"],"user_agent":"*"}')
-        status=$(jq -r '.results[0].status' <<<"$body")
-        if [ "$status" != success ]; then
-          echo "::error::Unexpected result status: $status"
-          echo "$body"
+        status=$(jq -r '.results[0].status' body.json 2>/dev/null || true)
+        if [ "$code" != 200 ] || [ "$status" != success ]; then
+          echo "::error::HTTP $code, result status: ${status:-none}"
+          cat headers.txt
+          head -c 2000 body.json
           exit 1
         fi
 
